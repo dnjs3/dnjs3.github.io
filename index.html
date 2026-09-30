@@ -4,19 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <meta name="description" content="비공개 CKM Excel 파일을 업로드하고 표로 확인하는 화면">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1020'/%3E%3Cpath d='M16 15h32v34H16z' fill='%237c9cff'/%3E%3Cpath d='M22 22h20M22 30h20M22 38h20M29 18v26' stroke='%230b1020' stroke-width='4'/%3E%3C/svg%3E">
+  <meta name="description" content="비공개 CKM Excel 분석 대시보드">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23356ae6'/%3E%3Cpath d='M16 15h32v34H16z' fill='white'/%3E%3Cpath d='M22 22h20M22 30h20M22 38h20M29 18v26' stroke='%23356ae6' stroke-width='4'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/app.css">
-  <title>CKM Excel Viewer</title>
+  <title>CKM Analytics</title>
 </head>
 <body>
   <main>
     <section id="login-screen" class="login-screen">
       <div class="login-card">
-        <div class="brand-mark" aria-hidden="true">C</div>
-        <p class="eyebrow">CKM PRIVATE ACCESS</p>
+        <div class="login-logo" aria-hidden="true">C</div>
+        <p class="auth-kicker">CKM PRIVATE ACCESS</p>
         <h1>Excel 보관함</h1>
-        <p class="login-copy">전용 GitHub Token으로 비공개 저장소에 연결합니다.</p>
+        <p class="auth-copy">전용 GitHub Token으로 비공개 분석 공간에 연결합니다.</p>
         <form id="login-form" class="login-form" novalidate>
           <label for="token-input">GitHub Fine-grained Token</label>
           <div class="token-row">
@@ -29,99 +29,151 @@
       </div>
     </section>
 
-    <section id="failure-screen" class="state-screen" hidden>
-      <div class="state-card">
-        <div class="state-symbol error" aria-hidden="true">!</div>
-        <p class="eyebrow">ACCESS DENIED</p>
+    <section id="failure-screen" class="login-screen" hidden>
+      <div class="login-card failure-card">
+        <div class="failure-mark" aria-hidden="true">!</div>
+        <p class="auth-kicker">ACCESS DENIED</p>
         <h1>연결할 수 없습니다</h1>
-        <p id="failure-message">Token이 올바르지 않거나 저장소 접근 권한이 없습니다.</p>
-        <button id="retry-button" type="button">다시 입력</button>
+        <p id="failure-message" class="auth-copy">Token이 올바르지 않거나 저장소 접근 권한이 없습니다.</p>
+        <button id="retry-button" class="auth-button" type="button">다시 입력</button>
       </div>
     </section>
 
-    <section id="app-screen" class="app-screen" hidden>
-      <header class="topbar">
-        <div class="brand-group">
-          <div class="brand-mark small" aria-hidden="true">C</div>
-          <div>
-            <h1>CKM Excel Viewer</h1>
-            <p><span class="connection-dot"></span><span id="connection-label">dnjs3/dlslrhdwn 연결됨</span></p>
-          </div>
+    <section id="app-screen" class="app-shell" hidden>
+      <aside class="main-sidebar">
+        <div class="product-brand">
+          <div class="product-logo" aria-hidden="true">C</div>
+          <span>CKM Analytics</span>
         </div>
-        <div class="topbar-actions">
-          <button id="refresh-button" class="button secondary" type="button">목록 새로고침</button>
-          <button id="logout-button" class="button ghost" type="button">로그아웃</button>
+
+        <nav class="main-nav" aria-label="주요 메뉴">
+          <p class="nav-group-label">OVERVIEW</p>
+          <button class="nav-item active" type="button" data-view="dashboard">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
+            Dashboard
+          </button>
+          <p class="nav-group-label">DATA</p>
+          <button class="nav-item" type="button" data-view="excel">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h11l3 3v15H5z"/><path d="M8 10h8M8 14h8M8 18h5"/></svg>
+            Excel 보관함
+          </button>
+          <button class="nav-item" type="button" data-view="history">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></svg>
+            분석 History
+          </button>
+          <p class="nav-group-label">SYSTEM</p>
+          <button class="nav-item" type="button" data-view="updates">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
+            업데이트 History
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="repo-state"><span></span><div><strong>Private 연결됨</strong><small id="connection-label">dnjs3/dlslrhdwn</small></div></div>
+          <button id="logout-button" class="logout-button" type="button">로그아웃</button>
         </div>
-      </header>
+      </aside>
 
-      <div class="workspace">
-        <aside class="sidebar">
-          <section class="upload-panel" aria-labelledby="upload-title">
-            <div class="section-heading">
-              <div><p class="section-kicker">UPLOAD</p><h2 id="upload-title">Excel 올리기</h2></div>
-            </div>
-            <input id="file-input" class="visually-hidden" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
-            <label id="file-dropzone" class="dropzone" for="file-input">
-              <span class="upload-icon" aria-hidden="true">+</span>
-              <strong id="file-label">파일 선택</strong>
-              <span>.xlsx · 최대 20MB</span>
-            </label>
-            <button id="upload-button" class="button primary full" type="button" disabled>비공개 저장소에 업로드</button>
-            <p id="upload-message" class="upload-message" aria-live="polite"></p>
-          </section>
+      <div class="app-content">
+        <header class="app-topbar">
+          <button id="mobile-menu-button" class="icon-button mobile-only" type="button" aria-label="메뉴 열기">☰</button>
+          <div><p id="view-eyebrow" class="page-eyebrow">OVERVIEW</p><h1 id="view-title">Dashboard</h1></div>
+          <button id="refresh-button" class="outline-button" type="button">새로고침</button>
+        </header>
 
-          <section class="files-panel" aria-labelledby="files-title">
-            <div class="section-heading files-heading">
-              <div><p class="section-kicker">FILES</p><h2 id="files-title">저장된 Excel</h2></div>
-              <span id="file-count" class="count-badge">0</span>
-            </div>
-            <div id="file-list" class="file-list" aria-live="polite">
-              <div class="sidebar-state">목록을 불러오는 중입니다.</div>
-            </div>
-          </section>
-        </aside>
-
-        <section class="content-panel">
-          <div id="empty-view" class="empty-view">
-            <div class="empty-grid" aria-hidden="true"></div>
-            <h2>Excel을 선택하세요</h2>
-            <p>왼쪽 목록에서 파일을 누르면 시트 내용을 표로 확인할 수 있습니다.</p>
+        <section id="run-progress" class="run-progress" aria-live="polite" hidden>
+          <div class="progress-topline">
+            <div><span id="progress-status" class="status-pill processing">분석 중</span><strong id="progress-file">Excel 파일</strong></div>
+            <strong id="progress-elapsed" class="elapsed-time">00:00</strong>
           </div>
-          <div id="processing-view" class="empty-view" hidden>
-            <div class="spinner large" aria-hidden="true"></div>
-            <h2>Excel을 분석하고 있습니다</h2>
-            <p>잠시 후 목록을 새로고침하면 표를 확인할 수 있습니다.</p>
-          </div>
-          <div id="error-view" class="empty-view" hidden>
-            <div class="state-symbol error" aria-hidden="true">!</div>
-            <h2>분석하지 못했습니다</h2>
-            <p id="analysis-error-message">Excel 처리 중 오류가 발생했습니다.</p>
-          </div>
-
-          <div id="table-view" class="table-view" hidden>
-            <div class="file-header">
-              <div>
-                <p class="section-kicker">SELECTED FILE</p>
-                <h2 id="selected-file-name">파일명.xlsx</h2>
-                <p id="selected-file-meta" class="file-meta"></p>
-              </div>
-              <label class="sheet-picker"><span>시트</span><select id="sheet-select"></select></label>
-            </div>
-            <div class="table-toolbar">
-              <p id="sheet-summary">0행 · 0열</p>
-              <p id="page-summary">1 / 1 페이지</p>
-            </div>
-            <div id="table-loading" class="table-loading" hidden>
-              <div class="spinner" aria-hidden="true"></div><span>표를 불러오는 중입니다.</span>
-            </div>
-            <div id="table-container" class="table-container" tabindex="0" aria-label="Excel 데이터 표"></div>
-            <nav class="pagination" aria-label="표 페이지 이동">
-              <button id="previous-page" class="button secondary" type="button">이전</button>
-              <span id="current-page">1 / 1</span>
-              <button id="next-page" class="button secondary" type="button">다음</button>
-            </nav>
+          <div class="progress-copy"><span id="progress-message">분석 작업을 준비하고 있습니다.</span><span id="progress-percent">5%</span></div>
+          <div class="progress-track"><span id="progress-bar"></span></div>
+          <ol id="progress-steps" class="progress-steps"></ol>
+          <div id="progress-actions" class="progress-actions" hidden>
+            <button id="progress-retry" class="outline-button" type="button">결과 다시 확인</button>
           </div>
         </section>
+
+        <div class="view-container">
+          <section id="dashboard-view" class="app-view">
+            <div class="welcome-row">
+              <div><h2>안녕하세요. CKM 현황입니다.</h2><p>최근 업로드와 분석 상태를 확인하세요.</p></div>
+              <span class="demo-note">예시 Dashboard</span>
+            </div>
+            <div class="metric-grid">
+              <article class="metric-card"><span>전체 Excel</span><strong>24</strong><small>DEMO</small></article>
+              <article class="metric-card"><span>분석 완료</span><strong>23</strong><small>DEMO</small></article>
+              <article class="metric-card"><span>평균 분석 시간</span><strong>18.4초</strong><small>DEMO</small></article>
+              <article class="metric-card"><span>최근 규격 이탈률</span><strong>2.1%</strong><small>DEMO</small></article>
+            </div>
+            <div class="dashboard-grid">
+              <article class="panel wide-panel">
+                <div class="panel-header"><div><span>RECENT RUNS</span><h3>최근 분석</h3></div><button type="button" class="text-button" data-go-view="history">전체 보기</button></div>
+                <div id="dashboard-history" class="activity-list"></div>
+              </article>
+              <article class="panel">
+                <div class="panel-header"><div><span>STATUS</span><h3>분석 상태 분포</h3></div><span class="demo-tag">DEMO</span></div>
+                <div class="donut-wrap"><div class="donut"><span>24<small>전체</small></span></div><div class="legend"><span><i class="success-dot"></i>완료 23</span><span><i class="warning-dot"></i>진행 1</span><span><i class="error-dot"></i>실패 0</span></div></div>
+              </article>
+              <article class="panel wide-panel">
+                <div class="panel-header"><div><span>UPLOADS</span><h3>이번 달 업로드</h3></div><span class="demo-tag">DEMO</span></div>
+                <div class="bar-chart" aria-label="예시 월간 업로드 차트"><div style="--h:38%"><span>1주</span></div><div style="--h:62%"><span>2주</span></div><div style="--h:48%"><span>3주</span></div><div style="--h:85%"><span>4주</span></div></div>
+              </article>
+              <article class="panel">
+                <div class="panel-header"><div><span>CHANGELOG</span><h3>최근 업데이트</h3></div><button type="button" class="text-button" data-go-view="updates">전체 보기</button></div>
+                <div id="dashboard-update" class="latest-update"></div>
+              </article>
+            </div>
+          </section>
+
+          <section id="excel-view" class="app-view" hidden>
+            <div class="excel-grid">
+              <aside class="file-column">
+                <article class="panel upload-card">
+                  <div class="panel-header"><div><span>UPLOAD</span><h3>Excel 올리기</h3></div></div>
+                  <input id="file-input" class="visually-hidden" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+                  <label id="file-dropzone" class="dropzone" for="file-input"><b>+</b><strong id="file-label">파일 선택</strong><span>.xlsx · 최대 20MB</span></label>
+                  <button id="upload-button" class="primary-button full" type="button" disabled>비공개 저장소에 업로드</button>
+                  <p id="upload-message" class="upload-message" aria-live="polite"></p>
+                </article>
+                <article class="panel files-card">
+                  <div class="panel-header"><div><span>FILES</span><h3>저장된 Excel</h3></div><b id="file-count" class="count-badge">0</b></div>
+                  <div id="file-list" class="file-list"><p class="empty-copy">목록을 불러오는 중입니다.</p></div>
+                </article>
+              </aside>
+              <section class="panel workbook-panel">
+                <div id="empty-view" class="empty-state"><div class="sheet-symbol"></div><h3>Excel을 선택하세요</h3><p>파일을 누르면 시트 내용을 표로 확인할 수 있습니다.</p></div>
+                <div id="processing-view" class="empty-state" hidden><div class="spinner"></div><h3>Excel을 분석하고 있습니다</h3><p>완료되면 이 화면에서 표가 자동으로 열립니다.</p></div>
+                <div id="error-view" class="empty-state" hidden><div class="failure-mark small">!</div><h3>분석하지 못했습니다</h3><p id="analysis-error-message"></p></div>
+                <div id="table-view" class="table-view" hidden>
+                  <div class="workbook-header"><div><span>SELECTED FILE</span><h3 id="selected-file-name"></h3><p id="selected-file-meta"></p></div><label>시트<select id="sheet-select"></select></label></div>
+                  <div class="table-meta"><span id="sheet-summary"></span><span id="page-summary"></span></div>
+                  <div id="table-loading" class="table-loading" hidden><div class="spinner small"></div>표를 불러오는 중입니다.</div>
+                  <div id="table-container" class="table-container" tabindex="0"></div>
+                  <nav class="pagination"><button id="previous-page" class="outline-button" type="button">이전</button><span id="current-page">1 / 1</span><button id="next-page" class="outline-button" type="button">다음</button></nav>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section id="history-view" class="app-view" hidden>
+            <div class="history-summary">
+              <article><span>전체 실행</span><strong id="history-total">0</strong></article>
+              <article><span>성공</span><strong id="history-success">0</strong></article>
+              <article><span>실패</span><strong id="history-failure">0</strong></article>
+              <article><span>평균 분석</span><strong id="history-average">-</strong></article>
+            </div>
+            <article class="panel history-panel">
+              <div class="panel-header"><div><span>ANALYSIS RUNS</span><h3>분석 실행 기록</h3></div></div>
+              <div class="history-table-wrap"><table class="history-table"><thead><tr><th>실행 시각</th><th>파일</th><th>결과</th><th>대기</th><th>분석</th><th>전체 소요</th><th>행</th><th>시트</th></tr></thead><tbody id="history-body"></tbody></table></div>
+            </article>
+          </section>
+
+          <section id="updates-view" class="app-view" hidden>
+            <div class="welcome-row"><div><h2>업데이트 History</h2><p>화면과 분석 기능의 변경 내역입니다.</p></div></div>
+            <div id="updates-timeline" class="updates-timeline"></div>
+          </section>
+        </div>
       </div>
     </section>
   </main>

@@ -1,0 +1,307 @@
+Create a desktop-only, single-screen token access page featuring two stylized cats based on the supplied personal reference photos. This is a new “playful cat” adaptation of the earlier playful-idea concept, not a literal recreation of the original lavender character video.
+
+The page must feel quiet, minimal, premium, and slightly playful. Do not add headings, explanatory copy, logos, navigation, social icons, cards, visible labels, submit buttons, error messages, or decorative sections. The only interface control visible before interaction is a glass-like lock button in the upper-left corner. The mouse pointer is replaced by a small blue fish, and both cats continuously look toward that fish.
+
+1. Reference cats
+
+Use the supplied photos only as visual reference for the cats’ identity, coloring, face shape, ears, eyes, and relationship. Ignore all rooms, furniture, screens, bedding, lighting artifacts, perspective distortion, and clutter visible in the photographs.
+
+Reference image paths:
+
+- C:/Users/박세원/Desktop/rhdiddl/261001.jpg
+- C:/Users/박세원/Desktop/rhdiddl/250813.jpg
+- C:/Users/박세원/Desktop/rhdiddl/250819.jpg
+- C:/Users/박세원/Desktop/rhdiddl/260930.jpg
+- C:/Users/박세원/Desktop/rhdiddl/250824.jpg
+
+There are exactly two cats.
+
+White cat:
+
+- Clean white short coat.
+- Tall triangular ears with pale pink inner ears.
+- Soft pink nose.
+- Large almond-shaped olive or muted green eyes.
+- Slim face and slightly elegant expression.
+- No spots, stripes, collar, clothing, accessories, or objects held in the paws.
+
+Brown cat:
+
+- Brown and dark charcoal tabby coat.
+- White blaze around the nose and muzzle.
+- White chest and small white paws.
+- Warm brown nose.
+- Large round green to yellow-green eyes.
+- Slightly rounder and more curious facial expression than the white cat.
+- Preserve the recognizable tabby forehead and cheek markings.
+- No collar, clothing, accessories, or objects held in the paws.
+
+Do not merge their markings. The white cat must remain entirely white, and the brown cat must retain its tabby pattern and white muzzle, chest, and paws.
+
+2. Visual style
+
+Render both cats as charming, high-quality 3D characters with a softly fuzzy, tactile surface. Use a refined plush-meets-real-cat style: recognizable as the real reference cats, but simplified and rounded enough to feel like premium animated characters.
+
+The fur should be softly fluffy rather than long-haired or shaggy. Individual fine fibers may catch the light around the cheeks, ears, chest, and silhouette, but the cats must not look like wool balls, sheep, bears, monsters, or generic stuffed toys.
+
+Avoid flat illustration, anime, chibi line art, claymation fingerprints, plastic toy surfaces, hyperreal photography, uncanny human expressions, oversized baby heads, and exaggerated cartoon smiles.
+
+The cats should look curious and attentive, not surprised, frightened, angry, sleepy, or aggressive. Their mouths remain naturally closed. Whiskers should be visible but restrained.
+
+3. Proportions
+
+Use a cute but believable head-to-body relationship.
+
+- Visual head height to visible body height: approximately 1:1.5.
+- The heads are slightly enlarged compared with realistic adult cats, but not full chibi proportions.
+- Both cats are seated upright next to each other.
+- Their shoulders and front paws are visible.
+- Their full tails do not need to be visible.
+- The white cat may be marginally taller and slimmer.
+- The brown cat may be marginally shorter and rounder.
+- Keep the scale difference subtle so they read as a pair.
+
+4. Pose and composition
+
+Both cats sit close together near the lower center-right of the 16:9 desktop frame. Their bodies face mostly forward, with a very slight inward angle toward one another.
+
+They are viewed from a gently elevated camera position, as if the viewer is standing in front of them and the cats are looking upward toward something above them. Do not use extreme wide-angle distortion or a fisheye lens.
+
+At the neutral state:
+
+- Both cats tilt their faces slightly upward.
+- Their gaze begins near the upper central area of the screen.
+- The brown cat may sit on the left and the white cat on the right, matching the clearest two-cat reference photograph.
+- Their ears remain alert and upright.
+- Their paws rest naturally on the floor.
+
+Reserve generous negative space in the upper-left quadrant for the lock control and its hidden token input. Do not place either cat’s face directly behind the lock.
+
+Keep both faces and all four eyes fully visible across common desktop aspect ratios, including 1920×1080, 1440×900, and 1366×768. The important facial area must not be cropped by object-fit cover behavior.
+
+5. Background
+
+Use a seamless, quiet warm-gray studio background rather than pure white.
+
+Recommended palette:
+
+- Main background: #D7D7D2
+- Slightly lighter upper area: #E2E2DE
+- Soft grounding shadow: neutral gray with low opacity
+- Primary dark detail color: #202321
+
+The gray must contain a small amount of warmth so the white cat remains visible and does not disappear into the background. It must also remain neutral enough for the brown tabby and blue fish cursor to stand out.
+
+Use a subtle floor-to-wall transition or an extremely soft studio cyclorama. Add only a soft contact shadow beneath the cats. Do not add furniture, rooms, windows, plants, toys, bowls, text, patterns, gradients with obvious color bands, dramatic spotlights, scenery, or environmental props.
+
+Lighting should be broad and diffused from the upper front-left. Preserve detail in the white cat’s fur without turning it gray. Keep the brown cat’s facial markings readable. Avoid hard shadows, blown highlights, heavy bloom, colored rim lighting, or cinematic darkness.
+
+6. Cat gaze interaction
+
+Both cats must look toward the custom blue fish pointer anywhere within the desktop viewport.
+
+Use a deterministic real-time eye-tracking implementation. Do not generate one generic looping video and pretend it follows the pointer. Do not rotate the entire cat image. Do not move the whole face around the screen.
+
+Recommended implementation:
+
+- Generate or prepare a high-resolution base artwork with the cats’ eye regions suitable for layered animation.
+- Define a separate eye mask for each of the four eyes.
+- Render each iris and pupil as an individual layer clipped inside its corresponding eye mask.
+- Track the latest mouse coordinates with pointermove.
+- For each eye, calculate the normalized vector from that eye’s screen-space center to the blue fish pointer.
+- Clamp movement to an eye-specific elliptical range so the iris never leaves the visible eye surface.
+- Apply slight smoothing with requestAnimationFrame so the gaze feels alive rather than mechanical.
+- Both cats follow the same fish, but introduce a tiny 30–60ms difference or slightly different easing so the motion does not look perfectly duplicated.
+- The brown cat may react a fraction faster; the white cat may move more smoothly.
+- When the pointer stops, the eyes remain focused on it.
+- When the pointer leaves the viewport, ease both gazes back toward the upper-center neutral point.
+- Do not add random blinking in the first implementation. Blinking can be considered later only if it does not break the likeness or eye masks.
+
+The heads may use an extremely small optional tilt, no more than approximately 1.5 degrees, in the fish direction. Eye motion is the primary effect. Disable the head tilt if it introduces distortion or reduces likeness.
+
+The eye tracking must remain active while the pointer is over the lock control or token input.
+
+7. Blue fish cursor
+
+Hide the operating system cursor only within this access screen and replace it with a small custom blue fish graphic.
+
+Fish design:
+
+- Simple side-profile fish silhouette.
+- Bright but refined medium blue, approximately #3B82F6.
+- Slightly darker edge or tail detail, approximately #1D4ED8.
+- No face, text, bubbles, fishing line, hook, water, sparkle trail, or cartoon sound effect.
+- Approximate visual size: 24–30px wide on a standard desktop display.
+- The fish should remain recognizable without becoming a dominant illustration.
+- Use a tiny soft shadow only if needed for contrast on the gray background.
+
+Interaction:
+
+- Position the fish with a fixed overlay using transform: translate3d.
+- Update its location through requestAnimationFrame using the latest pointer coordinates.
+- The fish may face the horizontal direction of travel by flipping on the X axis.
+- Do not rotate wildly with every diagonal movement.
+- Do not use a trailing animation.
+- Restore the normal cursor immediately after successful authentication or when the access screen is hidden.
+- If pointer precision is unavailable, do not show the custom cursor and keep the default cursor.
+
+8. Lock control
+
+Place one lock control in the upper-left negative-space area.
+
+The lock must look like a small translucent glass object inspired by modern iOS-style liquid glass, without copying any Apple logo, system icon, or exact proprietary component.
+
+Default appearance:
+
+- Rounded square or soft squircle container.
+- Approximate visible size: 46–52px.
+- Transparent white fill at low opacity.
+- Subtle background blur and saturation.
+- Fine pale border with separate upper highlight.
+- Very soft inner highlight and restrained shadow.
+- Minimal dark-gray outline lock glyph centered inside.
+- No text label visible.
+
+Suggested visual values:
+
+- Background: rgba(255,255,255,0.18)
+- Border: rgba(255,255,255,0.48)
+- Lock glyph: rgba(25,28,27,0.64)
+- Backdrop blur: 14–20px
+- Shadow: 0 8px 24px rgba(35,38,36,0.10)
+
+Hover appearance:
+
+- Increase glass fill opacity slightly.
+- Increase lock glyph opacity and contrast.
+- Make the border and upper highlight slightly clearer.
+- Use a small 120–180ms transition.
+- Do not scale dramatically, bounce, glow blue, or display a tooltip.
+
+Pressed or opened appearance:
+
+- Keep the control in the same position.
+- The shackle may change from closed to subtly open.
+- Do not add explanatory copy.
+
+The lock must be a real button with a minimum 44×44px hit area, visible keyboard focus, aria-label, aria-expanded, and aria-controls.
+
+9. Token input
+
+Clicking the lock reveals a single empty password input adjacent to or directly beneath the lock.
+
+- No visible label.
+- No placeholder.
+- No submit button.
+- No Enter requirement.
+- No instructions.
+- No success copy.
+- No visible error copy.
+- No red error box, shake animation, toast, modal, or alternate failure page.
+
+The input should use the same translucent glass language as the lock, but remain extremely quiet. Use either a thin glass capsule or a simple glass-backed underline. Its maximum width should be approximately 240–280px.
+
+The Token is verified automatically after the user stops typing for approximately 800ms. Do not request verification on every keystroke. Cancel or ignore stale requests when the input changes during a pending check.
+
+If verification succeeds, clear the input, restore the normal cursor, stop the cat-tracking access scene, and transition immediately to the authenticated application.
+
+If verification fails, remain on the same scene, clear the input value, keep focus in the input, and show no visible message. A visually hidden live region may announce the failure for accessibility.
+
+Never store the Token in localStorage, sessionStorage, IndexedDB, cookies, URLs, logs, or source code. Keep a successfully verified Token only in current-page JavaScript memory, consistent with the existing application.
+
+10. Desktop-only scope
+
+This concept is desktop-only for the first implementation.
+
+- Optimize for viewports wider than 700px.
+- Do not create a separate mobile composition.
+- Do not add touch-specific cat interaction.
+- At 700px or below, show a safe static fallback of the same two cats or preserve the existing unsupported-screen policy decided by the host application.
+- Do not autoplay a mobile video.
+- Do not spend implementation effort on mobile cropping, mobile stacking, or mobile token entry during this phase.
+
+The desktop page must still avoid breaking if opened at a narrow width. It may show a centered static fallback, but it must not expose private content or throw runtime errors.
+
+11. Motion and timing
+
+No prerecorded gaze-orbit video is required for this layered-eye implementation.
+
+Recommended timing:
+
+- Pointer-to-fish update: every requestAnimationFrame using the latest pointer position.
+- Brown cat gaze easing: approximately 90–130ms perceived response.
+- White cat gaze easing: approximately 120–170ms perceived response.
+- Pointer-leave return to neutral: approximately 350–500ms.
+- Lock hover transition: approximately 150ms.
+- Token input reveal: approximately 140ms.
+
+If a subtle ambient loop is added later, keep it 6–8 seconds and limit it to barely visible breathing or fur movement. The first version should prioritize stable artwork and precise eye tracking over a full character video.
+
+Respect prefers-reduced-motion. In reduced-motion mode, keep the blue fish cursor functional but reduce or remove smoothing, head tilt, and reveal transitions. Eye position may still update directly because it communicates pointer location rather than serving as decorative continuous animation.
+
+12. Technical direction
+
+The current public application uses static HTML, ordinary CSS, and vanilla JavaScript. Implement this scene without adding React, a UI framework, an animation library, or canvas unless canvas becomes necessary for eye masking.
+
+Preferred stack:
+
+- Semantic HTML for the access screen, lock button, hidden label, and password input.
+- CSS for the full-screen artwork, glass treatment, masks, transitions, and fallback.
+- Vanilla JavaScript for pointer tracking, fish cursor motion, per-eye gaze vectors, automatic Token verification, and lifecycle cleanup.
+- Layered WebP or PNG assets for the base cats and eye components.
+- SVG for the blue fish cursor and lock glyph.
+
+If image layers cannot preserve adequate realism, use a single high-resolution base image plus four clipped iris/pupil overlays. Do not switch to a generic stock cat, generic cat emoji, or unrelated AI-generated cats.
+
+13. Accessibility and cleanup
+
+- The decorative cat artwork is aria-hidden.
+- The blue fish cursor is decorative and aria-hidden.
+- The lock is a semantic button.
+- The password input has a visually hidden accessible label.
+- The input receives focus when opened.
+- Escape clears and closes the input.
+- Authentication success removes pointer listeners and animation frames from the access scene.
+- Logging out restores the access scene, lock state, normal neutral gaze, and fish cursor behavior.
+- Keyboard focus must remain visible even though no visible copy is used.
+
+14. Negative requirements
+
+Do not include any of the following:
+
+- Lavender monster or heart from the earlier concept.
+- Objects held by the cats.
+- More than two cats.
+- Kittens with infant proportions.
+- Long-haired Persian features.
+- Folded ears.
+- Collars, bells, clothes, hats, bows, glasses, or costumes.
+- Human hands or human body parts.
+- Cat paws reaching toward the pointer.
+- Text, logo, GitHub username, instructions, slogans, social icons, or navigation.
+- Visible Token placeholder or connect button.
+- Dark security portal styling.
+- Purple neon lighting.
+- Busy rooms or furniture copied from the reference photos.
+- Blue fish placed permanently inside the generated cat artwork.
+- Random eye directions or crossed eyes.
+- Eye layers escaping their eye masks.
+- Full-head rotation that warps the cats.
+- Mobile-specific implementation in the first version.
+
+15. Acceptance checks
+
+- The screen contains exactly the two recognizable reference-inspired cats.
+- The brown tabby appears on the left and the white cat appears on the right.
+- Both cats sit and look upward with approximately 1:1.5 head-to-visible-body proportions.
+- The upper-left area remains clear for the glass lock.
+- The warm-gray background separates the white cat from the backdrop.
+- A small blue fish replaces the pointer on the access screen.
+- All four eyes track the fish naturally and remain within their masks.
+- The cats remain distinct and do not exchange coat or facial markings.
+- The lock becomes slightly darker and clearer on hover.
+- Clicking the lock reveals a completely blank password input.
+- Token verification occurs automatically after a short typing pause.
+- Authentication failure produces no visible copy and does not navigate away.
+- Authentication success removes the custom cursor scene and opens the existing authenticated application.
+- No Token is persisted outside current-page JavaScript memory.
