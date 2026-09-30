@@ -9,11 +9,13 @@ const CONFIG = Object.freeze({
 const state = {
   token: null, selectedUpload: null, files: [], analysisHistory: [], updateHistory: [], selectedFileId: null,
   workbook: null, selectedSheetId: null, currentPage: 1, activeRun: null, pollTimer: null, elapsedTimer: null,
+  accessOpen: false, authenticationPending: false, authenticationTimer: null,
+  authenticationRequestId: 0, authenticationController: null,
 };
 
 const ids = [
-  "login-screen", "failure-screen", "app-screen", "login-form", "token-input", "login-button", "login-message",
-  "failure-message", "retry-button", "logout-button", "refresh-button", "mobile-menu-button", "view-eyebrow", "view-title",
+  "login-screen", "app-screen", "login-form", "token-input", "token-panel", "login-status", "lock-button",
+  "access-control", "logout-button", "refresh-button", "mobile-menu-button", "view-eyebrow", "view-title",
   "run-progress", "progress-status", "progress-file", "progress-elapsed", "progress-message", "progress-percent", "progress-bar",
   "progress-steps", "progress-actions", "progress-retry", "file-input", "file-dropzone", "file-label", "upload-button",
   "upload-message", "file-list", "file-count", "empty-view", "processing-view", "error-view", "analysis-error-message",
@@ -26,8 +28,37 @@ const viewMeta = { dashboard: ["OVERVIEW", "Dashboard"], excel: ["DATA", "Excel 
 
 function showRootScreen(name) {
   elements.loginScreen.hidden = name !== "login";
-  elements.failureScreen.hidden = name !== "failure";
   elements.appScreen.hidden = name !== "app";
+}
+
+function cancelAuthenticationAttempt() {
+  clearTimeout(state.authenticationTimer); state.authenticationTimer = null; state.authenticationRequestId += 1;
+  state.authenticationController?.abort(); state.authenticationController = null; state.authenticationPending = false;
+  elements.tokenPanel?.removeAttribute("aria-busy");
+}
+function setAccessOpen(open) {
+  state.accessOpen = open; elements.lockButton.setAttribute("aria-expanded", String(open)); elements.tokenPanel.hidden = !open;
+  if (!open) { cancelAuthenticationAttempt(); elements.tokenInput.value = ""; elements.loginStatus.textContent = ""; }
+  else requestAnimationFrame(() => elements.tokenInput.focus());
+}
+function scheduleAuthentication() {
+  clearTimeout(state.authenticationTimer); state.authenticationController?.abort(); state.authenticationController = null; state.authenticationPending = false;
+  const token = elements.tokenInput.value.trim(); if (!token) return;
+  state.authenticationTimer = setTimeout(() => authenticateCandidate(token), 800);
+}
+async function authenticateCandidate(token) {
+  const requestId = ++state.authenticationRequestId; const controller = new AbortController(); state.authenticationController = controller; state.authenticationPending = true;
+  elements.tokenPanel.setAttribute("aria-busy", "true"); elements.loginStatus.textContent = "접근 권한을 확인하고 있습니다.";
+  try {
+    const repository = await verifyAccess(token, controller.signal); if (requestId !== state.authenticationRequestId) return;
+    state.token = token; elements.tokenInput.value = ""; elements.connectionLabel.textContent = repository.full_name; elements.loginStatus.textContent = "인증되었습니다.";
+    showRootScreen("app"); showView("dashboard"); showContentView("empty"); await loadAllData({ preserveSelection: false });
+  } catch (error) {
+    if (error.name === "AbortError" || requestId !== state.authenticationRequestId) return;
+    state.token = null; elements.tokenInput.value = ""; elements.loginStatus.textContent = "인증하지 못했습니다."; elements.tokenInput.focus();
+  } finally {
+    if (requestId === state.authenticationRequestId) { state.authenticationPending = false; state.authenticationController = null; elements.tokenPanel.removeAttribute("aria-busy"); }
+  }
 }
 
 function showView(name) {
@@ -59,25 +90,26 @@ async function githubRequest(url, options = {}) {
   return response;
 }
 
-async function verifyAccess(token) {
+async function verifyAccess(token, signal) {
   const headers = { Accept: "application/vnd.github+json", Authorization: `Bearer ${token}`, "X-GitHub-Api-Version": CONFIG.apiVersion };
-  const response = await fetch(repoApi(), { headers, cache: "no-store" });
+  const response = await fetch(repoApi(), { headers, cache: "no-store", signal });
   if (!response.ok) { const error = new Error("비공개 저장소에 접근할 수 없습니다."); error.status = response.status; throw error; }
   const repository = await response.json();
   if (repository.full_name !== `${CONFIG.owner}/${CONFIG.repository}` || !repository.private) throw new Error("지정된 비공개 저장소가 아닙니다.");
-  const read = await fetch(apiUrl("README.md"), { headers, cache: "no-store" });
+  const read = await fetch(apiUrl("README.md"), { headers, cache: "no-store", signal });
   if (!read.ok) { const error = new Error("저장소 파일 읽기 권한이 없습니다."); error.status = read.status; throw error; }
   return repository;
 }
 
 function clearRunTimers() { clearTimeout(state.pollTimer); clearInterval(state.elapsedTimer); state.pollTimer = null; state.elapsedTimer = null; }
 function resetState() {
-  clearRunTimers(); Object.assign(state, { token: null, selectedUpload: null, files: [], analysisHistory: [], updateHistory: [], selectedFileId: null, workbook: null, selectedSheetId: null, currentPage: 1, activeRun: null });
+  clearRunTimers(); cancelAuthenticationAttempt(); Object.assign(state, { token: null, selectedUpload: null, files: [], analysisHistory: [], updateHistory: [], selectedFileId: null, workbook: null, selectedSheetId: null, currentPage: 1, activeRun: null });
   elements.tokenInput.value = ""; elements.fileInput.value = ""; elements.fileLabel.textContent = "파일 선택";
   elements.uploadButton.disabled = true; elements.uploadMessage.textContent = ""; elements.runProgress.hidden = true; elements.tableContainer.replaceChildren();
+  setAccessOpen(false);
 }
-function handleExpiredAuthentication(status) {
-  resetState(); elements.failureMessage.textContent = status === 401 ? "Token이 만료되었거나 유효하지 않습니다." : "Token 권한이 부족하거나 GitHub API 요청이 제한되었습니다."; showRootScreen("failure");
+function handleExpiredAuthentication() {
+  resetState(); showRootScreen("login");
 }
 
 function formatBytes(bytes) {
@@ -269,15 +301,11 @@ async function refreshEverything() { await loadAllData(); if (state.activeRun) p
 document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
 document.querySelectorAll("[data-go-view]").forEach((button) => button.addEventListener("click", () => showView(button.dataset.goView)));
 elements.mobileMenuButton.addEventListener("click", () => elements.appScreen.classList.toggle("menu-open"));
-elements.loginForm.addEventListener("submit", async (event) => {
-  event.preventDefault(); const token = elements.tokenInput.value.trim(); if (!token) { elements.loginMessage.textContent = "Token을 입력하세요."; return; }
-  elements.loginButton.disabled = true; elements.loginButton.textContent = "확인 중"; elements.loginMessage.textContent = "비공개 저장소 권한을 확인하고 있습니다.";
-  try { const repository = await verifyAccess(token); state.token = token; elements.tokenInput.value = ""; elements.connectionLabel.textContent = repository.full_name; showRootScreen("app"); showView("dashboard"); showContentView("empty"); await loadAllData({ preserveSelection: false }); }
-  catch (error) { state.token = null; elements.tokenInput.value = ""; elements.failureMessage.textContent = error.status === 401 ? "유효하지 않거나 만료된 Token입니다." : "Token이 올바르지 않거나 dlslrhdwn 저장소 권한이 없습니다."; showRootScreen("failure"); }
-  finally { elements.loginButton.disabled = false; elements.loginButton.textContent = "연결"; elements.loginMessage.textContent = ""; }
-});
-elements.retryButton.addEventListener("click", () => { resetState(); showRootScreen("login"); elements.tokenInput.focus(); });
-elements.logoutButton.addEventListener("click", () => { resetState(); showRootScreen("login"); elements.tokenInput.focus(); });
+elements.loginForm.addEventListener("submit", (event) => event.preventDefault());
+elements.lockButton.addEventListener("click", () => setAccessOpen(!state.accessOpen));
+elements.tokenInput.addEventListener("input", scheduleAuthentication);
+elements.tokenInput.addEventListener("keydown", (event) => { if (event.key === "Escape") setAccessOpen(false); });
+elements.logoutButton.addEventListener("click", () => { resetState(); showRootScreen("login"); });
 elements.refreshButton.addEventListener("click", refreshEverything);
 elements.progressRetry.addEventListener("click", async () => { elements.progressActions.hidden = true; await loadAllData({ preserveSelection: false }); const target = state.files.find((file) => file.status === "ready"); if (target) { showView("excel"); await selectFile(target.id); elements.runProgress.hidden = true; } else elements.progressActions.hidden = false; });
 elements.fileInput.addEventListener("change", () => chooseUpload(elements.fileInput.files[0])); elements.uploadButton.addEventListener("click", uploadSelectedFile);
@@ -286,3 +314,4 @@ elements.fileDropzone.addEventListener("drop", (event) => { event.preventDefault
 elements.sheetSelect.addEventListener("change", async () => { state.selectedSheetId = elements.sheetSelect.value; state.currentPage = 1; await loadTablePage(); });
 elements.previousPage.addEventListener("click", async () => { if (state.currentPage > 1) { state.currentPage -= 1; await loadTablePage(); } }); elements.nextPage.addEventListener("click", async () => { const sheet = selectedSheet(); if (sheet && state.currentPage < sheet.page_count) { state.currentPage += 1; await loadTablePage(); } });
 document.addEventListener("visibilitychange", () => { if (!document.hidden && state.activeRun) pollActiveRun(); });
+showRootScreen("login");

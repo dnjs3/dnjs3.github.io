@@ -11,31 +11,23 @@
 </head>
 <body>
   <main>
-    <section id="login-screen" class="login-screen">
-      <div class="login-card">
-        <div class="login-logo" aria-hidden="true">C</div>
-        <p class="auth-kicker">CKM PRIVATE ACCESS</p>
-        <h1>Excel 보관함</h1>
-        <p class="auth-copy">전용 GitHub Token으로 비공개 분석 공간에 연결합니다.</p>
-        <form id="login-form" class="login-form" novalidate>
-          <label for="token-input">GitHub Fine-grained Token</label>
-          <div class="token-row">
-            <input id="token-input" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_..." required autofocus>
-            <button id="login-button" type="submit">연결</button>
-          </div>
-          <p id="login-message" class="form-message" role="alert" aria-live="polite"></p>
-        </form>
-        <p class="security-note">Token은 현재 탭의 메모리에만 유지됩니다. 새로고침하거나 탭을 닫으면 삭제됩니다.</p>
+    <section id="login-screen" class="login-screen" aria-label="Private access">
+      <div class="idea-background" aria-hidden="true">
+        <video autoplay muted loop playsinline preload="auto" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260908_073327_03643c0a-db33-417a-ae8f-4a39259c7f9c.mp4"></video>
       </div>
-    </section>
 
-    <section id="failure-screen" class="login-screen" hidden>
-      <div class="login-card failure-card">
-        <div class="failure-mark" aria-hidden="true">!</div>
-        <p class="auth-kicker">ACCESS DENIED</p>
-        <h1>연결할 수 없습니다</h1>
-        <p id="failure-message" class="auth-copy">Token이 올바르지 않거나 저장소 접근 권한이 없습니다.</p>
-        <button id="retry-button" class="auth-button" type="button">다시 입력</button>
+      <div id="access-control" class="access-control">
+        <button id="lock-button" class="lock-button" type="button" aria-label="토큰 입력 열기" aria-expanded="false" aria-controls="token-panel">
+          <svg class="lock-closed" viewBox="0 0 32 32" aria-hidden="true"><path d="M9.5 14v-3.3a6.5 6.5 0 0 1 13 0V14M7.5 14h17v14h-17z"/><circle cx="16" cy="20.5" r="1.6"/><path d="M16 22v2.5"/></svg>
+          <svg class="lock-open" viewBox="0 0 32 32" aria-hidden="true"><path d="M10 14v-3a6.5 6.5 0 0 1 11.9-3.6M7.5 14h17v14h-17z"/><circle cx="16" cy="20.5" r="1.6"/><path d="M16 22v2.5"/></svg>
+        </button>
+        <form id="login-form" class="login-form" autocomplete="off" novalidate>
+          <div id="token-panel" class="token-panel" hidden>
+            <label class="visually-hidden" for="token-input">GitHub access token</label>
+            <input id="token-input" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="login-status">
+          </div>
+          <p id="login-status" class="visually-hidden" aria-live="polite"></p>
+        </form>
       </div>
     </section>
 
