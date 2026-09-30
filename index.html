@@ -13,7 +13,7 @@
   <main>
     <section id="login-screen" class="login-screen" aria-label="Private access">
       <div class="idea-background" aria-hidden="true">
-        <video autoplay muted loop playsinline preload="auto" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260908_073327_03643c0a-db33-417a-ae8f-4a39259c7f9c.mp4"></video>
+        <video id="idea-video" muted playsinline preload="auto" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260908_073327_03643c0a-db33-417a-ae8f-4a39259c7f9c.mp4"></video>
       </div>
 
       <div id="access-control" class="access-control">
@@ -24,7 +24,7 @@
         <form id="login-form" class="login-form" autocomplete="off" novalidate>
           <div id="token-panel" class="token-panel" hidden>
             <label class="visually-hidden" for="token-input">GitHub access token</label>
-            <input id="token-input" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="login-status">
+            <input id="token-input" type="password" autocomplete="new-password" autocapitalize="none" spellcheck="false" aria-describedby="login-status">
           </div>
           <p id="login-status" class="visually-hidden" aria-live="polite"></p>
         </form>
@@ -56,7 +56,7 @@
           <p class="nav-group-label">SYSTEM</p>
           <button class="nav-item" type="button" data-view="updates">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
-            업데이트 History
+            업데이트 사항
           </button>
         </nav>
 
@@ -162,13 +162,14 @@
           </section>
 
           <section id="updates-view" class="app-view" hidden>
-            <div class="welcome-row"><div><h2>업데이트 History</h2><p>화면과 분석 기능의 변경 내역입니다.</p></div></div>
+            <div class="welcome-row"><div><h2>업데이트 사항</h2><p>화면과 분석 기능의 변경 내역입니다.</p></div></div>
             <div id="updates-timeline" class="updates-timeline"></div>
           </section>
         </div>
       </div>
     </section>
   </main>
+  <script src="js/gaze-background.js" defer></script>
   <script src="js/app.js" defer></script>
 </body>
 </html>

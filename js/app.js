@@ -24,7 +24,7 @@ const ids = [
   "history-total", "history-success", "history-failure", "history-average", "history-body", "updates-timeline",
 ];
 const elements = Object.fromEntries(ids.map((id) => [id.replace(/-([a-z])/g, (_, c) => c.toUpperCase()), document.getElementById(id)]));
-const viewMeta = { dashboard: ["OVERVIEW", "Dashboard"], excel: ["DATA", "Excel 보관함"], history: ["DATA", "분석 History"], updates: ["SYSTEM", "업데이트 History"] };
+const viewMeta = { dashboard: ["OVERVIEW", "Dashboard"], excel: ["DATA", "Excel 보관함"], history: ["DATA", "분석 History"], updates: ["SYSTEM", "업데이트 사항"] };
 
 function showRootScreen(name) {
   elements.loginScreen.hidden = name !== "login";
@@ -41,12 +41,8 @@ function setAccessOpen(open) {
   if (!open) { cancelAuthenticationAttempt(); elements.tokenInput.value = ""; elements.loginStatus.textContent = ""; }
   else requestAnimationFrame(() => elements.tokenInput.focus());
 }
-function scheduleAuthentication() {
-  clearTimeout(state.authenticationTimer); state.authenticationController?.abort(); state.authenticationController = null; state.authenticationPending = false;
-  const token = elements.tokenInput.value.trim(); if (!token) return;
-  state.authenticationTimer = setTimeout(() => authenticateCandidate(token), 800);
-}
 async function authenticateCandidate(token) {
+  if (!token || state.authenticationPending) return;
   const requestId = ++state.authenticationRequestId; const controller = new AbortController(); state.authenticationController = controller; state.authenticationPending = true;
   elements.tokenPanel.setAttribute("aria-busy", "true"); elements.loginStatus.textContent = "접근 권한을 확인하고 있습니다.";
   try {
@@ -120,6 +116,10 @@ function formatDate(value) {
   const date = new Date(value); if (!value || Number.isNaN(date.getTime())) return "-";
   return new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(date);
 }
+function formatUpdateDate(value) {
+  const date = new Date(value); if (!value || Number.isNaN(date.getTime())) return "날짜 미정";
+  return new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+}
 function formatSeconds(value) { const seconds = Number(value); return Number.isFinite(seconds) ? `${seconds.toFixed(seconds < 10 ? 1 : 0)}초` : "-"; }
 function cellText(value) { if (value === null || value === undefined) return ""; return typeof value === "object" ? JSON.stringify(value) : String(value); }
 
@@ -175,7 +175,7 @@ function renderDashboard() {
   elements.dashboardUpdate.replaceChildren(); const update = state.updateHistory[0];
   const title = document.createElement("strong"); title.textContent = update?.title || "실시간 분석 진행률";
   const body = document.createElement("p"); body.textContent = update?.summary || "업로드 후 진행 단계와 소요 시간을 확인합니다.";
-  const meta = document.createElement("small"); meta.textContent = update ? `${update.version || ""} · ${formatDate(update.released_at || update.date)}` : "v0.2.0 · DEMO";
+  const meta = document.createElement("small"); meta.textContent = update ? formatUpdateDate(update.released_at || update.date) : "2026. 09. 30.";
   elements.dashboardUpdate.append(title, body, meta);
 }
 function renderHistory() {
@@ -190,9 +190,9 @@ function renderHistory() {
   ].forEach((value, index) => { const cell = document.createElement("td"); cell.textContent = value; if (index === 2) cell.className = `history-status ${run.status}`; row.append(cell); }); elements.historyBody.append(row); });
 }
 function renderUpdates() {
-  elements.updatesTimeline.replaceChildren(); const updates = state.updateHistory.length ? state.updateHistory : [{ version: "v0.2.0", date: "2026-09-30", title: "대시보드 개편", summary: "업데이트 기록 파일을 연결하면 이곳에 실제 변경 내역이 표시됩니다.", changes: ["분석 진행률", "자동 표 열기", "History 화면"] }];
-  updates.forEach((update) => { const card = document.createElement("article"); card.className = "update-card panel"; const date = document.createElement("time"); date.textContent = formatDate(update.released_at || update.date);
-    const title = document.createElement("h3"); title.textContent = `${update.version || ""} ${update.title || "업데이트"}`.trim(); const summary = document.createElement("p"); summary.textContent = update.summary || "";
+  elements.updatesTimeline.replaceChildren(); const updates = state.updateHistory.length ? state.updateHistory : [{ date: "2026-09-30", title: "대시보드 개편", summary: "업데이트 기록 파일을 연결하면 이곳에 실제 변경 내역이 표시됩니다.", changes: ["분석 진행률", "자동 표 열기", "History 화면"] }];
+  updates.forEach((update) => { const card = document.createElement("article"); card.className = "update-card panel"; const date = document.createElement("time"); date.textContent = `${formatUpdateDate(update.released_at || update.date)} - ${update.title || "업데이트 사항"}`;
+    const title = document.createElement("h3"); title.textContent = "업데이트 사항"; const summary = document.createElement("p"); summary.textContent = update.summary || "";
     const list = document.createElement("ul"); (update.changes || []).forEach((change) => { const item = document.createElement("li"); item.textContent = change; list.append(item); }); card.append(date, title, summary, list); elements.updatesTimeline.append(card); });
 }
 function renderFileList() {
@@ -301,9 +301,12 @@ async function refreshEverything() { await loadAllData(); if (state.activeRun) p
 document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
 document.querySelectorAll("[data-go-view]").forEach((button) => button.addEventListener("click", () => showView(button.dataset.goView)));
 elements.mobileMenuButton.addEventListener("click", () => elements.appScreen.classList.toggle("menu-open"));
-elements.loginForm.addEventListener("submit", (event) => event.preventDefault());
+elements.loginForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  authenticateCandidate(elements.tokenInput.value.trim());
+});
 elements.lockButton.addEventListener("click", () => setAccessOpen(!state.accessOpen));
-elements.tokenInput.addEventListener("input", scheduleAuthentication);
+elements.tokenInput.addEventListener("input", () => { elements.loginStatus.textContent = ""; });
 elements.tokenInput.addEventListener("keydown", (event) => { if (event.key === "Escape") setAccessOpen(false); });
 elements.logoutButton.addEventListener("click", () => { resetState(); showRootScreen("login"); });
 elements.refreshButton.addEventListener("click", refreshEverything);
