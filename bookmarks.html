@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="공부하며 다시 찾고 싶은 사이트와 기록을 모아둔 북마크">
+  <link rel="icon" type="image/svg+xml" href="assets/book-bookmark.svg">
+  <link rel="stylesheet" href="css/bookmarks.css">
+  <title>bookmark</title>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="bookmarks.html" aria-label="bookmark 홈">
+      <svg viewBox="0 0 256 256" aria-hidden="true"><path d="M208,24H72A32,32,0,0,0,40,56V224a8,8,0,0,0,8,8H192a8,8,0,0,0,0-16H56a16,16,0,0,1,16-16H208a8,8,0,0,0,8-8V32A8,8,0,0,0,208,24ZM120,40h48v72L148.79,97.6a8,8,0,0,0-9.6,0L120,112Zm80,144H72a31.82,31.82,0,0,0-16,4.29V56A16,16,0,0,1,72,40h32v88a8,8,0,0,0,12.8,6.4L144,114l27.21,20.4A8,8,0,0,0,176,136a8,8,0,0,0,8-8V40h16Z"/></svg>
+      <span>bookmark</span>
+    </a>
+    <nav aria-label="페이지 메뉴">
+      <a class="active" href="#collection">collection</a>
+      <a href="#notes">notes</a>
+      <a href="index.html" aria-label="비공개 페이지로 이동">private</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <p class="eyebrow">A SMALL LIBRARY FOR LEARNING</p>
+      <h1>공부하다 발견한<br><em>좋은 페이지들.</em></h1>
+      <p class="hero-copy">한 번 보고 닫기 아까웠던 문서, 도구, 글을 천천히 모읍니다.</p>
+      <label class="search-box">
+        <span aria-hidden="true">⌕</span>
+        <span class="visually-hidden">북마크 검색</span>
+        <input id="bookmark-search" type="search" placeholder="제목, 설명, 태그로 검색" autocomplete="off">
+        <kbd>/</kbd>
+      </label>
+    </section>
+
+    <section id="collection" class="collection-section" aria-labelledby="collection-title">
+      <div class="section-heading">
+        <div><p class="eyebrow">COLLECTION</p><h2 id="collection-title">저장한 사이트</h2></div>
+        <p><strong id="visible-count">0</strong>개의 북마크</p>
+      </div>
+      <div id="category-filter" class="category-filter" aria-label="카테고리 필터"></div>
+      <div id="bookmark-grid" class="bookmark-grid"></div>
+      <p id="empty-message" class="empty-message" hidden>검색 결과가 없습니다.</p>
+    </section>
+
+    <section id="notes" class="notes-section" aria-labelledby="notes-title">
+      <div class="section-heading">
+        <div><p class="eyebrow">STUDY NOTES</p><h2 id="notes-title">짧은 기록</h2></div>
+      </div>
+      <div class="note-list">
+        <article><time datetime="2026-10-01">2026.10.01</time><div><h3>북마크를 시작하며</h3><p>자주 돌아보는 자료를 주제별로 정리하기 시작했다.</p></div><span>01</span></article>
+        <article><time datetime="2026-09-30">2026.09.30</time><div><h3>문서는 예제와 함께</h3><p>개념만 읽는 것보다 작은 예제를 바로 만들어 보는 편이 오래 남는다.</p></div><span>02</span></article>
+      </div>
+    </section>
+  </main>
+
+  <footer><span>bookmark</span><p>배우고, 저장하고, 다시 꺼내보기.</p></footer>
+  <script src="js/bookmarks.js" defer></script>
+</body>
+</html>

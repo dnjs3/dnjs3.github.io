@@ -51,6 +51,7 @@ async function authenticateCandidate(token) {
     showRootScreen("app"); showView("dashboard"); showContentView("empty"); await loadAllData({ preserveSelection: false });
   } catch (error) {
     if (error.name === "AbortError" || requestId !== state.authenticationRequestId) return;
+    if ([401, 403, 404].includes(error.status)) { window.location.assign("bookmarks.html"); return; }
     state.token = null; elements.tokenInput.value = ""; elements.loginStatus.textContent = "인증하지 못했습니다."; elements.tokenInput.focus();
   } finally {
     if (requestId === state.authenticationRequestId) { state.authenticationPending = false; state.authenticationController = null; elements.tokenPanel.removeAttribute("aria-busy"); }
