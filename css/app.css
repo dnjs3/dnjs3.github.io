@@ -44,7 +44,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .fish-cursor svg { width:100%; height:100%; display:block; fill:currentColor; }
 .fish-cursor circle { fill:#dbeafe; }
 
-.access-control { position:absolute; z-index:10; top:clamp(24px,4vw,64px); left:clamp(24px,4vw,64px); display:grid; justify-items:start; gap:12px; }
+.access-control { position:absolute; z-index:10; top:clamp(24px,4vw,64px); left:clamp(24px,4vw,64px); display:flex; align-items:center; gap:10px; }
 .lock-button { width:52px; height:52px; display:grid; place-items:center; padding:0; border:0; border-radius:17px; outline:0; color:rgba(25,28,27,.38); background:transparent; box-shadow:none; backdrop-filter:none; transition:background .18s ease,color .18s ease,box-shadow .18s ease,backdrop-filter .18s ease; }
 .lock-button:hover,.lock-button:focus-visible,.lock-button[aria-expanded="true"] { color:rgba(18,21,20,.86); background:linear-gradient(145deg,rgba(255,255,255,.52),rgba(255,255,255,.2)); box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 10px 28px rgba(50,45,40,.13); backdrop-filter:blur(18px) saturate(1.12); }
 .lock-button:focus-visible { outline:3px solid rgba(53,106,230,.42); outline-offset:4px; }
@@ -52,12 +52,21 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .lock-open { display:none; }
 .lock-button[aria-expanded="true"] .lock-closed { display:none; }
 .lock-button[aria-expanded="true"] .lock-open { display:block; }
-.login-form { margin:0; }
-.token-panel { width:min(270px,calc(100vw - 68px)); padding:5px; border:1px solid rgba(255,255,255,.52); border-radius:15px; background:linear-gradient(145deg,rgba(255,255,255,.34),rgba(255,255,255,.14)); box-shadow:inset 0 1px 0 rgba(255,255,255,.68),0 10px 24px rgba(50,45,40,.1); backdrop-filter:blur(18px) saturate(1.1); animation:token-reveal .14s ease-out; }
-.token-panel input { width:100%; min-height:40px; padding:7px 12px; border:0; border-bottom:1px solid rgba(36,40,38,.35); outline:0; background:transparent; color:#202321; caret-color:#202321; letter-spacing:.08em; }
-.token-panel input:focus { border-bottom-color:rgba(24,28,26,.78); box-shadow:0 3px 0 -2px rgba(24,28,26,.28); }
-.token-panel[aria-busy="true"] { opacity:.76; }
-@keyframes token-reveal { from { opacity:0; transform:translateY(-5px); } to { opacity:1; transform:translateY(0); } }
+.login-form { width:0; margin:0; overflow:visible; transition:width .3s cubic-bezier(.22,1,.36,1); }
+.access-control.open .login-form { width:min(284px,calc(100vw - 106px)); }
+.token-panel { width:min(284px,calc(100vw - 106px)); height:48px; display:flex; align-items:center; padding:4px 5px 4px 13px; border:1px solid transparent; border-radius:16px; opacity:0; visibility:hidden; pointer-events:none; transform:translateX(-12px) scale(.97); transform-origin:left center; background:transparent; transition:opacity .2s ease,transform .3s cubic-bezier(.22,1,.36,1),visibility 0s linear .3s,background .25s ease,border-color .25s ease,box-shadow .25s ease; }
+.access-control.open .token-panel { border-color:rgba(255,255,255,.54); opacity:1; visibility:visible; pointer-events:auto; transform:translateX(0) scale(1); background:linear-gradient(145deg,rgba(255,255,255,.42),rgba(255,255,255,.17)); box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 10px 24px rgba(50,45,40,.1); backdrop-filter:blur(18px) saturate(1.1); transition-delay:0s; }
+.token-panel input { min-width:0; height:38px; flex:1; padding:6px 8px; border:0; outline:0; background:transparent; color:#202321; caret-color:#202321; letter-spacing:.06em; }
+.token-panel input::placeholder { color:rgba(32,35,33,.42); letter-spacing:.02em; }
+.token-submit { width:38px; height:38px; flex:0 0 38px; display:grid; place-items:center; padding:0; border:0; border-radius:12px; color:rgba(25,28,27,.62); background:rgba(255,255,255,.28); transition:background .15s ease,color .15s ease,transform .15s ease; }
+.token-submit:hover,.token-submit:focus-visible { color:#202321; background:rgba(255,255,255,.58); }
+.token-submit:active { transform:scale(.94); }
+.token-submit svg { grid-area:1/1; width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.submit-spinner { grid-area:1/1; width:18px; height:18px; display:none; border:2px solid rgba(32,35,33,.2); border-top-color:rgba(32,35,33,.78); border-radius:50%; animation:token-spin .7s linear infinite; }
+.token-panel[aria-busy="true"] .submit-arrow { display:none; }
+.token-panel[aria-busy="true"] .submit-spinner { display:block; }
+.token-panel[aria-busy="true"] input,.token-panel[aria-busy="true"] .token-submit { pointer-events:none; }
+@keyframes token-spin { to { transform:rotate(360deg); } }
 
 .product-logo { display:grid; place-items:center; color:#667085; }
 .failure-mark { display:grid; width:54px; height:54px; margin:0 auto 18px; place-items:center; border-radius:50%; background:rgba(255,89,109,.12); color:#ff7f90; font-size:26px; font-weight:900; }
@@ -202,6 +211,6 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 
 @media (max-width:1100px){.metric-grid{grid-template-columns:repeat(2,1fr)}.dashboard-grid{grid-template-columns:1fr}.excel-grid{grid-template-columns:280px minmax(0,1fr)}.history-summary{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:780px){.app-shell{grid-template-columns:1fr}.main-sidebar{width:260px;position:fixed;left:-280px;z-index:40;box-shadow:20px 0 50px rgba(32,45,70,.14);transition:left .2s ease}.app-shell.menu-open .main-sidebar{left:0}.mobile-only{display:block}.app-topbar{padding:0 18px}.view-container{padding:24px 16px}.app-content>.run-progress{width:calc(100% - 32px);margin-top:16px}.excel-grid{grid-template-columns:1fr}.workbook-panel{min-height:560px}.dashboard-grid{grid-template-columns:1fr}.update-card{grid-template-columns:1fr;gap:8px}}
-@media (max-width:700px){.token-panel{width:min(250px,calc(100vw - 48px))}}
+@media (max-width:700px){.access-control.open .login-form,.token-panel{width:min(250px,calc(100vw - 106px))}}
 @media (max-width:520px){.metric-grid,.history-summary{grid-template-columns:1fr}.welcome-row{display:block}.demo-note{display:inline-block;margin-top:12px}.topbar-actions{display:none}.progress-steps{display:grid;grid-template-columns:1fr 1fr}.workbook-header{align-items:stretch;flex-direction:column}.workbook-header select{width:100%}}
-@media (prefers-reduced-motion:reduce){.lock-button,.token-panel,.app-shell{animation:none;transition:none}}
+@media (prefers-reduced-motion:reduce){.lock-button,.login-form,.token-panel,.app-shell{animation:none;transition:none}}

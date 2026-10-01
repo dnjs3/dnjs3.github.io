@@ -6,7 +6,7 @@
   <meta name="referrer" content="no-referrer">
   <meta name="description" content="비공개 CKM Excel 분석 대시보드">
   <link rel="icon" type="image/svg+xml" href="assets/book-bookmark.svg">
-  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/app.css?v=20261001-2">
   <title>bookmark</title>
 </head>
 <body>
@@ -22,9 +22,13 @@
           <svg class="lock-open" viewBox="0 0 32 32" aria-hidden="true"><path d="M10 14v-3a6.5 6.5 0 0 1 11.9-3.6M7.5 14h17v14h-17z"/><circle cx="16" cy="20.5" r="1.6"/><path d="M16 22v2.5"/></svg>
         </button>
         <form id="login-form" class="login-form" autocomplete="off" novalidate>
-          <div id="token-panel" class="token-panel" hidden>
+          <div id="token-panel" class="token-panel" aria-hidden="true">
             <label class="visually-hidden" for="token-input">GitHub access token</label>
-            <input id="token-input" type="password" autocomplete="new-password" autocapitalize="none" spellcheck="false" aria-describedby="login-status">
+            <input id="token-input" type="password" placeholder="access token" autocomplete="new-password" autocapitalize="none" spellcheck="false" aria-describedby="login-status">
+            <button id="token-submit" class="token-submit" type="submit" aria-label="토큰 확인" disabled>
+              <svg class="submit-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              <span class="submit-spinner" aria-hidden="true"></span>
+            </button>
           </div>
           <p id="login-status" class="visually-hidden" aria-live="polite"></p>
         </form>
@@ -171,7 +175,7 @@
       </div>
     </section>
   </main>
-  <script src="js/gaze-background.js" defer></script>
-  <script src="js/app.js" defer></script>
+  <script src="js/gaze-background.js?v=20261001-2" defer></script>
+  <script src="js/app.js?v=20261001-2" defer></script>
 </body>
 </html>

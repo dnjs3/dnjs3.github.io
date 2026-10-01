@@ -14,7 +14,7 @@ const state = {
 };
 
 const ids = [
-  "login-screen", "app-screen", "login-form", "token-input", "token-panel", "login-status", "lock-button",
+  "login-screen", "app-screen", "login-form", "token-input", "token-panel", "token-submit", "login-status", "lock-button",
   "access-control", "logout-button", "refresh-button", "mobile-menu-button", "view-eyebrow", "view-title",
   "run-progress", "progress-status", "progress-file", "progress-elapsed", "progress-message", "progress-percent", "progress-bar",
   "progress-steps", "progress-actions", "progress-retry", "file-input", "file-dropzone", "file-label", "upload-button",
@@ -37,24 +37,24 @@ function cancelAuthenticationAttempt() {
   elements.tokenPanel?.removeAttribute("aria-busy");
 }
 function setAccessOpen(open) {
-  state.accessOpen = open; elements.lockButton.setAttribute("aria-expanded", String(open)); elements.tokenPanel.hidden = !open;
-  if (!open) { cancelAuthenticationAttempt(); elements.tokenInput.value = ""; elements.loginStatus.textContent = ""; }
+  state.accessOpen = open; elements.lockButton.setAttribute("aria-expanded", String(open)); elements.accessControl.classList.toggle("open", open); elements.tokenPanel.setAttribute("aria-hidden", String(!open));
+  if (!open) { cancelAuthenticationAttempt(); elements.tokenInput.value = ""; elements.tokenSubmit.disabled = true; elements.loginStatus.textContent = ""; }
   else requestAnimationFrame(() => elements.tokenInput.focus());
 }
 async function authenticateCandidate(token) {
   if (!token || state.authenticationPending) return;
   const requestId = ++state.authenticationRequestId; const controller = new AbortController(); state.authenticationController = controller; state.authenticationPending = true;
-  elements.tokenPanel.setAttribute("aria-busy", "true"); elements.loginStatus.textContent = "접근 권한을 확인하고 있습니다.";
+  elements.tokenPanel.setAttribute("aria-busy", "true"); elements.tokenSubmit.disabled = true; elements.loginStatus.textContent = "접근 권한을 확인하고 있습니다.";
   try {
     const repository = await verifyAccess(token, controller.signal); if (requestId !== state.authenticationRequestId) return;
     state.token = token; elements.tokenInput.value = ""; elements.connectionLabel.textContent = repository.full_name; elements.loginStatus.textContent = "인증되었습니다.";
     showRootScreen("app"); showView("dashboard"); showContentView("empty"); await loadAllData({ preserveSelection: false });
   } catch (error) {
     if (error.name === "AbortError" || requestId !== state.authenticationRequestId) return;
-    if ([401, 403, 404].includes(error.status)) { window.location.assign("bookmarks.html"); return; }
+    if ([401, 403, 404].includes(Number(error.status))) { window.location.href = new URL("bookmarks.html", document.baseURI).href; return; }
     state.token = null; elements.tokenInput.value = ""; elements.loginStatus.textContent = "인증하지 못했습니다."; elements.tokenInput.focus();
   } finally {
-    if (requestId === state.authenticationRequestId) { state.authenticationPending = false; state.authenticationController = null; elements.tokenPanel.removeAttribute("aria-busy"); }
+    if (requestId === state.authenticationRequestId) { state.authenticationPending = false; state.authenticationController = null; elements.tokenPanel.removeAttribute("aria-busy"); elements.tokenSubmit.disabled = !elements.tokenInput.value.trim(); }
   }
 }
 
@@ -307,7 +307,7 @@ elements.loginForm.addEventListener("submit", (event) => {
   authenticateCandidate(elements.tokenInput.value.trim());
 });
 elements.lockButton.addEventListener("click", () => setAccessOpen(!state.accessOpen));
-elements.tokenInput.addEventListener("input", () => { elements.loginStatus.textContent = ""; });
+elements.tokenInput.addEventListener("input", () => { elements.loginStatus.textContent = ""; elements.tokenSubmit.disabled = !elements.tokenInput.value.trim() || state.authenticationPending; });
 elements.tokenInput.addEventListener("keydown", (event) => { if (event.key === "Escape") setAccessOpen(false); });
 elements.logoutButton.addEventListener("click", () => { resetState(); showRootScreen("login"); });
 elements.refreshButton.addEventListener("click", refreshEverything);
