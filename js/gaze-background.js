@@ -27,8 +27,11 @@
   const tau = Math.PI * 2;
   let animationFrame = 0;
   let desiredTime = 0;
+  let desiredFrame = -1;
+  let appliedFrame = -1;
   let pointer = null;
   let disposed = false;
+  let videoRect = null;
 
   const timeForAngle = (angle) => {
     const target = (angle % tau + tau) % tau;
@@ -48,16 +51,18 @@
   const seek = () => {
     animationFrame = 0;
     if (disposed || video.readyState < 2 || video.seeking) return;
-    if (Math.abs(video.currentTime - desiredTime) > 1 / 48) {
-      video.currentTime = Math.min(desiredTime, video.duration - 1 / 24);
-    }
+    if (desiredFrame === appliedFrame) return;
+    appliedFrame = desiredFrame;
+    const target = Math.min(desiredTime, video.duration - 1 / 24);
+    if (typeof video.fastSeek === "function") video.fastSeek(target);
+    else video.currentTime = target;
   };
   const schedule = () => {
     if (!animationFrame) animationFrame = requestAnimationFrame(seek);
   };
   const updateTarget = () => {
     if (!pointer) return;
-    const rect = video.getBoundingClientRect();
+    const rect = videoRect || video.getBoundingClientRect();
     const scale = Math.max(rect.width / 1920, rect.height / 1080);
     const eyeX = rect.left + rect.width / 2 + (948 - 960) * scale;
     const eyeY = rect.top + rect.height / 2 + (418 - 540) * scale;
@@ -65,28 +70,42 @@
     const dy = pointer.y - eyeY;
     if (Math.hypot(dx, dy) > 8) {
       desiredTime = timeForAngle(Math.atan2(dy, dx));
-      schedule();
+      desiredFrame = Math.round(desiredTime * 24);
+      if (desiredFrame !== appliedFrame) schedule();
     }
   };
   const move = (event) => {
     pointer = { x: event.clientX, y: event.clientY };
-    updateTarget();
+    scheduleTargetUpdate();
+  };
+  let targetFrame = 0;
+  const scheduleTargetUpdate = () => {
+    if (targetFrame) return;
+    targetFrame = requestAnimationFrame(() => {
+      targetFrame = 0;
+      updateTarget();
+    });
+  };
+  const updateLayout = () => {
+    videoRect = video.getBoundingClientRect();
+    scheduleTargetUpdate();
   };
   const ready = () => {
     video.pause();
-    updateTarget();
+    updateLayout();
     schedule();
   };
 
   video.addEventListener("seeked", schedule);
   video.addEventListener("loadeddata", ready);
   window.addEventListener("pointermove", move, { passive: true });
-  window.addEventListener("resize", updateTarget);
-  window.addEventListener("scroll", updateTarget, { passive: true });
+  window.addEventListener("resize", updateLayout);
+  window.addEventListener("scroll", updateLayout, { passive: true });
   if (video.readyState >= 2) ready();
 
   window.addEventListener("pagehide", () => {
     disposed = true;
     cancelAnimationFrame(animationFrame);
+    cancelAnimationFrame(targetFrame);
   }, { once: true });
 })();
