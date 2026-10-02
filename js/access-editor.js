@@ -4,8 +4,8 @@ const ctx = canvas.getContext('2d');
 const drop = $('#drop');
 const ui = {
   file: $('#file'), fit: $('#fit'), paddingX: $('#padding-x'), paddingXOut: $('#padding-x-out'),
-  paddingY: $('#padding-y'), paddingYOut: $('#padding-y-out'), zoom: $('#zoom'), zoomOut: $('#zoom-out'),
-  crop: $('#crop'), guides: $('#guides'), center: $('#center'), lock: $('#lock'), text: $('#text'),
+  paddingY: $('#padding-y'), paddingYOut: $('#padding-y-out'), crop: $('#crop'), guides: $('#guides'),
+  center: $('#center'), lock: $('#lock'), text: $('#text'),
   family: $('#family'), size: $('#size'), sizeOut: $('#size-out'), y: $('#text-y'), yOut: $('#y-out'),
   color: $('#text-color'), bg: $('#bg'), hint: $('#hint'), status: $('#status')
 };
@@ -94,13 +94,12 @@ function scheduleSave() {
 function read() {
   Object.assign(state, {
     fit: ui.fit.value, paddingX: +ui.paddingX.value, paddingY: +ui.paddingY.value,
-    zoom: +ui.zoom.value, crop: ui.crop.checked, guides: ui.guides.checked,
+    crop: ui.crop.checked, guides: ui.guides.checked,
     text: ui.text.value, family: ui.family.value, size: +ui.size.value, y: +ui.y.value,
     color: ui.color.value, bg: ui.bg.value
   });
   ui.paddingXOut.value = state.paddingX;
   ui.paddingYOut.value = state.paddingY;
-  ui.zoomOut.value = state.zoom + '%';
   ui.sizeOut.value = state.size;
   ui.yOut.value = state.y + '%';
   draw();
@@ -108,13 +107,12 @@ function read() {
 
 function sync() {
   ui.fit.value = state.fit; ui.paddingX.value = state.paddingX; ui.paddingY.value = state.paddingY;
-  ui.zoom.value = state.zoom; ui.crop.checked = state.crop; ui.guides.checked = state.guides;
+  ui.crop.checked = state.crop; ui.guides.checked = state.guides;
   ui.text.value = state.text; ui.family.value = state.family; ui.size.value = state.size;
   ui.y.value = state.y; ui.color.value = state.color; ui.bg.value = state.bg;
   ui.lock.classList.toggle('on', state.locked);
   ui.lock.textContent = state.locked ? '고정 해제' : '사진 위치 고정';
   ui.lock.setAttribute('aria-pressed', String(state.locked));
-  ui.zoom.disabled = state.locked;
   canvas.classList.toggle('locked', state.locked);
   document.querySelectorAll('[data-align]').forEach(button => button.classList.toggle('on', button.dataset.align === state.align));
   read();
@@ -128,7 +126,6 @@ function load(file) {
     const image = new Image();
     image.onload = () => {
       Object.assign(state, { image, dx: 0, dy: 0, zoom: 100 });
-      ui.zoom.value = 100;
       ui.hint.classList.add('hide');
       draw();
     };
@@ -155,14 +152,14 @@ canvas.addEventListener('wheel', event => {
   if (!state.image || state.locked) return;
   event.preventDefault();
   state.zoom = Math.max(50, Math.min(250, state.zoom + (event.deltaY < 0 ? 5 : -5)));
-  ui.zoom.value = state.zoom; read();
+  draw();
 }, { passive: false });
 
 ui.file.addEventListener('change', event => load(event.target.files[0]));
 drop.addEventListener('dragover', event => { event.preventDefault(); drop.classList.add('over'); });
 drop.addEventListener('dragleave', () => drop.classList.remove('over'));
 drop.addEventListener('drop', event => { event.preventDefault(); drop.classList.remove('over'); load(event.dataTransfer.files[0]); });
-[ui.fit, ui.paddingX, ui.paddingY, ui.zoom, ui.crop, ui.guides, ui.text, ui.family, ui.size, ui.y, ui.color, ui.bg].forEach(control => control.addEventListener('input', read));
+[ui.fit, ui.paddingX, ui.paddingY, ui.crop, ui.guides, ui.text, ui.family, ui.size, ui.y, ui.color, ui.bg].forEach(control => control.addEventListener('input', read));
 document.querySelectorAll('[data-align]').forEach(button => button.onclick = () => { state.align = button.dataset.align; sync(); });
 ui.center.onclick = () => { state.dx = 0; state.dy = 0; draw(); };
 ui.lock.onclick = () => { state.locked = !state.locked; sync(); };
