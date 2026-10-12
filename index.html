@@ -95,27 +95,39 @@
         <div class="view-container">
           <section id="dashboard-view" class="app-view">
             <div class="welcome-row">
-              <div><h2>안녕하세요. CKM 현황입니다.</h2><p>최근 업로드와 분석 상태를 확인하세요.</p></div>
-              <span class="demo-note">예시 Dashboard</span>
+              <div><h2>CKM 규격 분석 현황</h2><p>중복을 제외한 측정값과 규격 이탈을 확인하세요.</p></div>
+              <span id="dashboard-scope" class="scope-note">고유 데이터 0개</span>
             </div>
             <div class="metric-grid">
-              <article class="metric-card"><span>전체 Excel</span><strong>24</strong><small>DEMO</small></article>
-              <article class="metric-card"><span>분석 완료</span><strong>23</strong><small>DEMO</small></article>
-              <article class="metric-card"><span>평균 분석 시간</span><strong>18.4초</strong><small>DEMO</small></article>
-              <article class="metric-card"><span>최근 규격 이탈률</span><strong>2.1%</strong><small>DEMO</small></article>
+              <article class="metric-card"><span>고유 데이터</span><strong id="dashboard-dataset-count">0</strong><small>A열 기준</small></article>
+              <article class="metric-card"><span>측정값</span><strong id="dashboard-measurement-count">0</strong><small>Actual</small></article>
+              <article class="metric-card"><span>규격 이탈률</span><strong id="dashboard-out-rate">-</strong><small>LSL·USL</small></article>
+              <article class="metric-card"><span>규격 없음</span><strong id="dashboard-missing-spec">0</strong><small>판정 제외</small></article>
             </div>
             <div class="dashboard-grid">
               <article class="panel wide-panel">
-                <div class="panel-header"><div><span>RECENT RUNS</span><h3>최근 분석</h3></div><button type="button" class="text-button" data-go-view="history">전체 보기</button></div>
-                <div id="dashboard-history" class="activity-list"></div>
+                <div class="panel-header"><div><span>SPEC POSITION</span><h3>규격 내 위치 분포</h3></div><small>LSL 0% · USL 100%</small></div>
+                <div id="dashboard-spec-position" class="spec-position"></div>
               </article>
               <article class="panel">
-                <div class="panel-header"><div><span>STATUS</span><h3>분석 상태 분포</h3></div><span class="demo-tag">DEMO</span></div>
-                <div class="donut-wrap"><div class="donut"><span>24<small>전체</small></span></div><div class="legend"><span><i class="success-dot"></i>완료 23</span><span><i class="warning-dot"></i>진행 1</span><span><i class="error-dot"></i>실패 0</span></div></div>
+                <div class="panel-header"><div><span>JUDGEMENT</span><h3>규격 판정</h3></div></div>
+                <div class="donut-wrap"><div id="dashboard-status-donut" class="donut"><span>-<small>판정률</small></span></div><div id="dashboard-status-legend" class="legend"></div></div>
               </article>
               <article class="panel wide-panel">
-                <div class="panel-header"><div><span>UPLOADS</span><h3>이번 달 업로드</h3></div><span class="demo-tag">DEMO</span></div>
-                <div class="bar-chart" aria-label="예시 월간 업로드 차트"><div style="--h:38%"><span>1주</span></div><div style="--h:62%"><span>2주</span></div><div style="--h:48%"><span>3주</span></div><div style="--h:85%"><span>4주</span></div></div>
+                <div class="panel-header"><div><span>PARAMETER</span><h3>규격 이탈 Parameter</h3></div><small>상위 8개</small></div>
+                <div id="dashboard-parameter-bars" class="rank-bars"></div>
+              </article>
+              <article class="panel">
+                <div class="panel-header"><div><span>CHAMBER</span><h3>Chamber 비교</h3></div></div>
+                <div id="dashboard-chambers" class="chamber-list"></div>
+              </article>
+              <article class="panel full-panel">
+                <div class="panel-header"><div><span>P/N × PARAMETER</span><h3>규격 이탈 히트맵</h3></div><small>주요 P/N·Parameter</small></div>
+                <div id="dashboard-heatmap" class="heatmap-wrap"></div>
+              </article>
+              <article class="panel wide-panel">
+                <div class="panel-header"><div><span>RECENT RUNS</span><h3>최근 분석</h3></div><button type="button" class="text-button" data-go-view="history">전체 보기</button></div>
+                <div id="dashboard-history" class="activity-list"></div>
               </article>
               <article class="panel">
                 <div class="panel-header"><div><span>CHANGELOG</span><h3>최근 업데이트</h3></div><button type="button" class="text-button" data-go-view="updates">전체 보기</button></div>

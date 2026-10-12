@@ -21,6 +21,8 @@ const ids = [
   "upload-message", "file-list", "file-count", "empty-view", "processing-view", "error-view", "analysis-error-message",
   "table-view", "selected-file-name", "selected-file-meta", "sheet-select", "sheet-summary", "page-summary", "table-loading",
   "table-container", "previous-page", "next-page", "current-page", "connection-label", "dashboard-history", "dashboard-update",
+  "dashboard-scope", "dashboard-dataset-count", "dashboard-measurement-count", "dashboard-out-rate", "dashboard-missing-spec",
+  "dashboard-spec-position", "dashboard-status-donut", "dashboard-status-legend", "dashboard-parameter-bars", "dashboard-chambers", "dashboard-heatmap",
   "history-total", "history-success", "history-failure", "history-average", "history-body", "updates-timeline",
 ];
 const elements = Object.fromEntries(ids.map((id) => [id.replace(/-([a-z])/g, (_, c) => c.toUpperCase()), document.getElementById(id)]));
@@ -141,6 +143,8 @@ function mergeFileLists(rawFiles, processedIndex) {
     id: item?.id || raw.name.replace(/\.xlsx$/i, ""), original_name: item?.original_name || raw.name, uploaded_at: item?.uploaded_at || null,
     size: raw.size, status: item?.status || "processing", error: item?.error || null, raw_path: raw.path,
     workbook_path: item?.workbook_path || null, sheet_count: item?.sheet_count || 0, row_count: item?.row_count || 0,
+    dataset_key: item?.dataset_key || null, dataset_label: item?.dataset_label || null, filename_key: item?.filename_key || datasetKeyFromFilename(item?.original_name || raw.name),
+    is_duplicate: Boolean(item?.is_duplicate), duplicate_of: item?.duplicate_of || null, analytics: item?.analytics || null,
   }; }).sort((a, b) => String(b.uploaded_at || b.id).localeCompare(String(a.uploaded_at || a.id)));
 }
 
@@ -167,17 +171,87 @@ function makeActivity(item, demo = false) {
   copy.append(strong, small); row.append(mark, copy); return row;
 }
 function renderDashboard() {
+  const files = state.files.filter((file) => file.status === "ready" && !file.is_duplicate && file.analytics);
+  const summaries = files.map((file) => file.analytics.summary || {});
+  const total = (field) => summaries.reduce((sum, item) => sum + (Number(item[field]) || 0), 0);
+  const validActual = total("valid_actual_count"); const evaluated = total("spec_evaluated_count"); const outOfSpec = total("out_of_spec_count");
+  const inSpec = total("in_spec_count"); const missingSpec = total("missing_spec_count");
+  elements.dashboardDatasetCount.textContent = files.length.toLocaleString("ko-KR");
+  elements.dashboardMeasurementCount.textContent = validActual.toLocaleString("ko-KR");
+  elements.dashboardOutRate.textContent = evaluated ? `${((outOfSpec / evaluated) * 100).toFixed(1)}%` : "-";
+  elements.dashboardMissingSpec.textContent = missingSpec.toLocaleString("ko-KR");
+  elements.dashboardScope.textContent = `고유 데이터 ${files.length.toLocaleString("ko-KR")}개${state.files.some((file) => file.is_duplicate) ? " · 중복 제외" : ""}`;
+
+  renderSpecPosition(files);
+  renderStatusDonut({ inSpec, outOfSpec, missingSpec, evaluated, validActual });
+  renderParameterBars(files);
+  renderChambers(files);
+  renderHeatmap(files);
+
   elements.dashboardHistory.replaceChildren(); const runs = state.analysisHistory.slice(0, 4);
   if (runs.length) runs.forEach((run) => elements.dashboardHistory.append(makeActivity(run)));
-  else [
-    { original_name: "CKM_measurement_0929.xlsx", completed_at: "2026-09-29T09:10:00+09:00", total_seconds: 17.8, status: "success" },
-    { original_name: "CKM_report_0927.xlsx", completed_at: "2026-09-27T13:20:00+09:00", total_seconds: 20.1, status: "success" },
-  ].forEach((run) => elements.dashboardHistory.append(makeActivity(run, true)));
+  else { const empty = document.createElement("p"); empty.className = "dashboard-empty"; empty.textContent = "아직 분석 기록이 없습니다."; elements.dashboardHistory.append(empty); }
   elements.dashboardUpdate.replaceChildren(); const update = state.updateHistory[0];
   const title = document.createElement("strong"); title.textContent = update?.title || "실시간 분석 진행률";
   const body = document.createElement("p"); body.textContent = update?.summary || "업로드 후 진행 단계와 소요 시간을 확인합니다.";
   const meta = document.createElement("small"); meta.textContent = update ? formatUpdateDate(update.released_at || update.date) : "2026. 09. 30.";
   elements.dashboardUpdate.append(title, body, meta);
+}
+
+function renderSpecPosition(files) {
+  const keys = ["below", "lower", "center", "upper", "above"];
+  const labels = { below: "LSL 미달", lower: "하단 0~25%", center: "중앙 25~75%", upper: "상단 75~100%", above: "USL 초과" };
+  const counts = Object.fromEntries(keys.map((key) => [key, files.reduce((sum, file) => sum + (Number(file.analytics.spec_position_buckets?.[key]) || 0), 0)]));
+  const totalCount = keys.reduce((sum, key) => sum + counts[key], 0); elements.dashboardSpecPosition.replaceChildren();
+  if (!totalCount) { const empty = document.createElement("p"); empty.className = "dashboard-empty"; empty.textContent = "LSL과 USL이 모두 있는 측정값이 없습니다."; elements.dashboardSpecPosition.append(empty); return; }
+  const track = document.createElement("div"); track.className = "spec-track";
+  keys.forEach((key) => { const segment = document.createElement("span"); segment.className = `spec-segment ${key}`; segment.style.width = `${(counts[key] / totalCount) * 100}%`; segment.title = `${labels[key]} ${counts[key].toLocaleString("ko-KR")}건`; track.append(segment); });
+  const axis = document.createElement("div"); axis.className = "spec-axis"; axis.innerHTML = "<span>LSL 바깥</span><span>LSL 0%</span><span>규격 중앙</span><span>USL 100%</span><span>USL 바깥</span>";
+  const legend = document.createElement("div"); legend.className = "spec-legend";
+  keys.forEach((key) => { const item = document.createElement("div"); const label = document.createElement("span"); const value = document.createElement("strong"); label.textContent = labels[key]; value.textContent = counts[key].toLocaleString("ko-KR"); item.append(label, value); legend.append(item); });
+  elements.dashboardSpecPosition.append(track, axis, legend);
+}
+
+function renderStatusDonut({ inSpec, outOfSpec, missingSpec, evaluated, validActual }) {
+  const base = validActual || 1; const passEnd = (inSpec / base) * 100; const failEnd = passEnd + (outOfSpec / base) * 100;
+  elements.dashboardStatusDonut.style.background = `conic-gradient(#3ba675 0 ${passEnd}%,#d6455d ${passEnd}% ${failEnd}%,#dce1e8 ${failEnd}% 100%)`;
+  const center = elements.dashboardStatusDonut.querySelector("span"); center.firstChild.textContent = evaluated ? `${((inSpec / evaluated) * 100).toFixed(1)}%` : "-";
+  elements.dashboardStatusLegend.replaceChildren();
+  [["success-dot", `규격 내 ${inSpec.toLocaleString("ko-KR")}`], ["error-dot", `규격 이탈 ${outOfSpec.toLocaleString("ko-KR")}`], ["neutral-dot", `규격 없음 ${missingSpec.toLocaleString("ko-KR")}`]].forEach(([className, text]) => { const item = document.createElement("span"); const dot = document.createElement("i"); dot.className = className; item.append(dot, text); elements.dashboardStatusLegend.append(item); });
+}
+
+function aggregateStats(files, field, keyBuilder) {
+  const result = new Map();
+  files.forEach((file) => (file.analytics[field] || []).forEach((source) => { const key = keyBuilder(source); const stat = result.get(key) || { ...source, count: 0, evaluated_count: 0, out_of_spec_count: 0 }; stat.count += Number(source.count) || 0; stat.evaluated_count += Number(source.evaluated_count) || 0; stat.out_of_spec_count += Number(source.out_of_spec_count) || 0; result.set(key, stat); }));
+  return [...result.values()];
+}
+
+function renderParameterBars(files) {
+  const stats = aggregateStats(files, "parameter_stats", (item) => `${item.parameter}\u0000${item.unit || ""}`).sort((a, b) => b.out_of_spec_count - a.out_of_spec_count || b.count - a.count).slice(0, 8);
+  elements.dashboardParameterBars.replaceChildren();
+  if (!stats.length) { const empty = document.createElement("p"); empty.className = "dashboard-empty"; empty.textContent = "표시할 Parameter가 없습니다."; elements.dashboardParameterBars.append(empty); return; }
+  const maximum = Math.max(...stats.map((item) => item.out_of_spec_count), 1);
+  stats.forEach((item) => { const row = document.createElement("div"); row.className = "rank-row"; const label = document.createElement("span"); label.className = "rank-label"; label.textContent = `${item.parameter}${item.unit ? ` (${item.unit})` : ""}`; label.title = label.textContent; const track = document.createElement("span"); track.className = "rank-track"; const bar = document.createElement("span"); bar.style.width = `${(item.out_of_spec_count / maximum) * 100}%`; track.append(bar); const value = document.createElement("b"); value.className = "rank-value"; value.textContent = `${item.out_of_spec_count}건`; row.append(label, track, value); elements.dashboardParameterBars.append(row); });
+}
+
+function renderChambers(files) {
+  const stats = aggregateStats(files, "chamber_stats", (item) => item.chamber).sort((a, b) => b.count - a.count);
+  elements.dashboardChambers.replaceChildren();
+  if (!stats.length) { const empty = document.createElement("p"); empty.className = "dashboard-empty"; empty.textContent = "Chamber 값이 없습니다."; elements.dashboardChambers.append(empty); return; }
+  stats.slice(0, 6).forEach((item) => { const card = document.createElement("div"); card.className = "chamber-card"; const name = document.createElement("strong"); name.textContent = item.chamber; const rate = document.createElement("b"); rate.textContent = item.evaluated_count ? `${((item.out_of_spec_count / item.evaluated_count) * 100).toFixed(1)}%` : "-"; const detail = document.createElement("small"); detail.textContent = `${item.count.toLocaleString("ko-KR")}건 · 이탈 ${item.out_of_spec_count.toLocaleString("ko-KR")}건`; card.append(name, rate, detail); elements.dashboardChambers.append(card); });
+}
+
+function renderHeatmap(files) {
+  const stats = aggregateStats(files, "pn_parameter_stats", (item) => `${item.pn}\u0000${item.parameter}\u0000${item.unit || ""}`);
+  elements.dashboardHeatmap.replaceChildren();
+  if (!stats.length) { const empty = document.createElement("p"); empty.className = "dashboard-empty"; empty.textContent = "P/N과 Parameter 조합이 없습니다."; elements.dashboardHeatmap.append(empty); return; }
+  const parameterScores = new Map(); const pnScores = new Map();
+  stats.forEach((item) => { const parameter = `${item.parameter}${item.unit ? ` (${item.unit})` : ""}`; const p = parameterScores.get(parameter) || [0, 0]; p[0] += item.out_of_spec_count; p[1] += item.count; parameterScores.set(parameter, p); const n = pnScores.get(item.pn) || [0, 0]; n[0] += item.out_of_spec_count; n[1] += item.count; pnScores.set(item.pn, n); });
+  const ranked = (map, limit) => [...map.entries()].sort((a, b) => b[1][0] - a[1][0] || b[1][1] - a[1][1]).slice(0, limit).map(([key]) => key);
+  const parameters = ranked(parameterScores, 10); const pns = ranked(pnScores, 12); const lookup = new Map(stats.map((item) => [`${item.pn}\u0000${item.parameter}${item.unit ? ` (${item.unit})` : ""}`, item]));
+  const table = document.createElement("table"); table.className = "heatmap-table"; const head = document.createElement("thead"); const headRow = document.createElement("tr"); const corner = document.createElement("th"); corner.textContent = "P/N"; headRow.append(corner); parameters.forEach((parameter) => { const th = document.createElement("th"); th.textContent = parameter; th.title = parameter; headRow.append(th); }); head.append(headRow); const body = document.createElement("tbody");
+  pns.forEach((pn) => { const row = document.createElement("tr"); const label = document.createElement("th"); label.textContent = pn; label.title = pn; row.append(label); parameters.forEach((parameter) => { const cell = document.createElement("td"); const item = lookup.get(`${pn}\u0000${parameter}`); if (!item || !item.evaluated_count) { cell.className = "no-data"; cell.textContent = "·"; } else { const rate = item.out_of_spec_count / item.evaluated_count; cell.style.background = rate ? `rgba(214,69,93,${0.2 + Math.min(rate, 1) * 0.7})` : "rgba(59,166,117,.2)"; cell.textContent = rate ? `${Math.round(rate * 100)}%` : "0"; cell.title = `${pn} · ${parameter}: ${item.out_of_spec_count}/${item.evaluated_count} 이탈`; } row.append(cell); }); body.append(row); });
+  table.append(head, body); elements.dashboardHeatmap.append(table);
 }
 function renderHistory() {
   const runs = state.analysisHistory; const successes = runs.filter((run) => run.status === "success"); const failures = runs.filter((run) => run.status === "failure");
@@ -200,7 +274,7 @@ function renderFileList() {
   elements.fileCount.textContent = String(state.files.length); elements.fileList.replaceChildren();
   if (!state.files.length) { const empty = document.createElement("p"); empty.className = "empty-copy"; empty.textContent = "저장된 Excel이 없습니다."; elements.fileList.append(empty); return; }
   state.files.forEach((file) => { const button = document.createElement("button"); button.type = "button"; button.className = `file-item${file.id === state.selectedFileId ? " selected" : ""}`;
-    const name = document.createElement("strong"); name.textContent = file.original_name; const status = document.createElement("span"); status.className = `status ${file.status}`; status.textContent = statusLabel(file.status);
+    const name = document.createElement("strong"); name.textContent = file.original_name; const status = document.createElement("span"); status.className = `status ${file.is_duplicate ? "duplicate" : file.status}`; status.textContent = file.is_duplicate ? "중복" : statusLabel(file.status);
     const detail = document.createElement("small"); detail.textContent = `${formatBytes(file.size)} · ${formatDate(file.uploaded_at)}`; button.append(name, status, detail); button.addEventListener("click", () => selectFile(file.id)); elements.fileList.append(button); });
 }
 
@@ -230,7 +304,24 @@ async function loadTablePage() {
   } catch (error) { elements.analysisErrorMessage.textContent = error.message; showContentView("error"); } finally { elements.tableLoading.hidden = true; }
 }
 
-function validateUpload(file) { if (!file) return "Excel 파일을 선택하세요."; if (!file.name.toLowerCase().endsWith(".xlsx")) return ".xlsx 파일만 업로드할 수 있습니다."; if (file.size > CONFIG.maxFileSize) return "파일 크기는 20MB 이하여야 합니다."; if (!file.size) return "비어 있는 파일은 업로드할 수 없습니다."; return null; }
+function normalizedIdentity(value) { return String(value || "").normalize("NFKC").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ""); }
+function datasetKeyFromFilename(filename) {
+  const stem = String(filename || "").replace(/\.xlsx$/i, "");
+  const label = stem.replace(/(?:[\s_-]+|\()\s*(?:\d{8}|\d{6}|\d{4}[-_.]\d{2}[-_.]\d{2})(?:\s*\))?$/u, "").replace(/[\s_()\-]+$/u, "");
+  return normalizedIdentity(label || stem);
+}
+function duplicateUpload(file) {
+  const key = datasetKeyFromFilename(file?.name); if (!key) return null;
+  return state.files.find((item) => item.filename_key === key || datasetKeyFromFilename(item.original_name) === key) || null;
+}
+function validateUpload(file) {
+  if (!file) return "Excel 파일을 선택하세요.";
+  if (!file.name.toLowerCase().endsWith(".xlsx")) return ".xlsx 파일만 업로드할 수 있습니다.";
+  if (file.size > CONFIG.maxFileSize) return "파일 크기는 20MB 이하여야 합니다.";
+  if (!file.size) return "비어 있는 파일은 업로드할 수 없습니다.";
+  const duplicate = duplicateUpload(file); if (duplicate) return `같은 데이터가 이미 있습니다: ${duplicate.original_name}`;
+  return null;
+}
 function chooseUpload(file) {
   const error = validateUpload(file); state.selectedUpload = error ? null : file; elements.fileLabel.textContent = file?.name || "파일 선택";
   elements.uploadButton.disabled = Boolean(error) || Boolean(state.activeRun); elements.uploadMessage.className = `upload-message${error ? " error" : ""}`; elements.uploadMessage.textContent = error || `${formatBytes(file.size)} · 업로드할 준비가 되었습니다.`;
