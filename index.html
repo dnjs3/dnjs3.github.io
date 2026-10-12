@@ -6,7 +6,7 @@
   <meta name="referrer" content="no-referrer">
   <meta name="description" content="비공개 CKM Excel 분석 대시보드">
   <link rel="icon" type="image/svg+xml" href="assets/book-bookmark.svg">
-  <link rel="stylesheet" href="css/app.css?v=20261012-3">
+  <link rel="stylesheet" href="css/app.css?v=20261012-4">
   <title>bookmark</title>
 </head>
 <body>
@@ -144,7 +144,10 @@
               </div>
               <div class="files-inline">
                 <label class="toolbar-heading" for="file-list"><span>FILES</span><strong>저장된 Excel</strong><b id="file-count" class="count-badge">0</b></label>
-                <select id="file-list" class="file-select" aria-label="저장된 Excel 선택"><option value="">목록을 불러오는 중입니다.</option></select>
+                <div class="file-select-controls">
+                  <select id="file-list" class="file-select" aria-label="저장된 Excel 선택"><option value="">목록을 불러오는 중입니다.</option></select>
+                  <button id="delete-file-button" class="outline-button danger-button" type="button" disabled>삭제</button>
+                </div>
               </div>
             </div>
             <section class="panel workbook-panel">
@@ -182,6 +185,6 @@
     </section>
   </main>
   <script src="js/gaze-background.js?v=20261001-2" defer></script>
-  <script src="js/app.js?v=20261012-3" defer></script>
+  <script src="js/app.js?v=20261012-4" defer></script>
 </body>
 </html>

@@ -18,7 +18,7 @@ const ids = [
   "access-control", "logout-button", "refresh-button", "mobile-menu-button", "view-eyebrow", "view-title",
   "run-progress", "progress-status", "progress-file", "progress-elapsed", "progress-message", "progress-percent", "progress-bar",
   "progress-steps", "progress-actions", "progress-retry", "file-input", "file-dropzone", "file-label", "upload-button",
-  "upload-message", "file-list", "file-count", "empty-view", "processing-view", "error-view", "analysis-error-message",
+  "upload-message", "file-list", "file-count", "delete-file-button", "empty-view", "processing-view", "error-view", "analysis-error-message",
   "table-view", "selected-file-name", "selected-file-meta", "sheet-select", "sheet-summary", "page-summary", "table-loading",
   "table-container", "previous-page", "next-page", "current-page", "dashboard-history", "dashboard-update",
   "dashboard-dataset-count", "dashboard-measurement-count", "dashboard-out-rate", "dashboard-missing-spec",
@@ -141,7 +141,7 @@ function mergeFileLists(rawFiles, processedIndex) {
   const byPath = new Map((processedIndex.files || []).map((file) => [file.raw_path, file]));
   return rawFiles.map((raw) => { const item = byPath.get(raw.path); return {
     id: item?.id || raw.name.replace(/\.xlsx$/i, ""), original_name: item?.original_name || raw.name, uploaded_at: item?.uploaded_at || null,
-    size: raw.size, status: item?.status || "processing", error: item?.error || null, raw_path: raw.path,
+    size: raw.size, sha: raw.sha, status: item?.status || "processing", error: item?.error || null, raw_path: raw.path,
     workbook_path: item?.workbook_path || null, sheet_count: item?.sheet_count || 0, row_count: item?.row_count || 0,
     dataset_key: item?.dataset_key || null, dataset_label: item?.dataset_label || null, filename_key: item?.filename_key || datasetKeyFromFilename(item?.original_name || raw.name),
     is_duplicate: Boolean(item?.is_duplicate), duplicate_of: item?.duplicate_of || null, analytics: item?.analytics || null,
@@ -263,8 +263,18 @@ function renderHistory() {
     formatSeconds(run.analysis_seconds), formatSeconds(run.total_seconds), Number(run.row_count || 0).toLocaleString("ko-KR"), String(run.sheet_count || 0),
   ].forEach((value, index) => { const cell = document.createElement("td"); cell.textContent = value; if (index === 2) cell.className = `history-status ${run.status}`; row.append(cell); }); elements.historyBody.append(row); });
 }
+function mergeUpdatesByDate(updates) {
+  const grouped = new Map();
+  updates.forEach((update) => {
+    const date = update.released_at || update.date || "";
+    if (!grouped.has(date)) { grouped.set(date, { ...update, changes: [...(update.changes || [])] }); return; }
+    const current = grouped.get(date);
+    (update.changes || []).forEach((change) => { if (!current.changes.includes(change)) current.changes.push(change); });
+  });
+  return [...grouped.values()];
+}
 function renderUpdates() {
-  elements.updatesTimeline.replaceChildren(); const updates = state.updateHistory.length ? state.updateHistory : [{ date: "2026-09-30", title: "대시보드 개편", summary: "업데이트 기록 파일을 연결하면 이곳에 실제 변경 내역이 표시됩니다.", changes: ["분석 진행률", "자동 표 열기", "History 화면"] }];
+  elements.updatesTimeline.replaceChildren(); const source = state.updateHistory.length ? state.updateHistory : [{ date: "2026-09-30", title: "대시보드 개편", summary: "업데이트 기록 파일을 연결하면 이곳에 실제 변경 내역이 표시됩니다.", changes: ["분석 진행률", "자동 표 열기", "History 화면"] }]; const updates = mergeUpdatesByDate(source);
   updates.forEach((update) => { const card = document.createElement("article"); card.className = "update-card"; const date = document.createElement("time"); date.textContent = formatUpdateDate(update.released_at || update.date);
     const content = document.createElement("div"); const title = document.createElement("h3"); title.textContent = update.title || "변경 내역"; const summary = document.createElement("p"); summary.textContent = update.summary || "";
     const list = document.createElement("ul"); (update.changes || []).forEach((change) => { const item = document.createElement("li"); item.textContent = change; list.append(item); }); content.append(title, summary, list); card.append(date, content); elements.updatesTimeline.append(card); });
@@ -274,6 +284,19 @@ function renderFileList() {
   const placeholder = document.createElement("option"); placeholder.value = ""; placeholder.textContent = state.files.length ? "Excel 파일을 선택하세요" : "저장된 Excel이 없습니다."; elements.fileList.append(placeholder);
   state.files.forEach((file) => { const option = document.createElement("option"); option.value = file.id; const status = file.is_duplicate ? "중복" : statusLabel(file.status); option.textContent = `${file.original_name} · ${status} · ${formatBytes(file.size)} · ${formatDate(file.uploaded_at)}`; elements.fileList.append(option); });
   elements.fileList.value = state.files.some((file) => file.id === state.selectedFileId) ? state.selectedFileId : "";
+  elements.deleteFileButton.disabled = !elements.fileList.value || Boolean(state.activeRun);
+}
+
+async function deleteSelectedFile() {
+  const file = state.files.find((item) => item.id === state.selectedFileId); if (!file || !file.sha || state.activeRun) return;
+  if (!window.confirm(`정말 삭제할까요?\n\n${file.original_name}\n\n삭제하면 Dashboard 집계에서도 제외됩니다.`)) return;
+  elements.deleteFileButton.disabled = true; elements.uploadMessage.className = "upload-message"; elements.uploadMessage.textContent = "Excel을 삭제하고 있습니다.";
+  try {
+    const response = await githubRequest(apiUrl(file.raw_path), { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: `data: delete ${file.original_name}`, sha: file.sha, branch: CONFIG.branch }) });
+    if (!response.ok) { let detail = {}; try { detail = await response.json(); } catch (_) { /* empty response */ } throw new Error(detail.message || "Excel 삭제에 실패했습니다."); }
+    state.selectedFileId = null; state.workbook = null; state.selectedSheetId = null; showContentView("empty"); await loadAllData({ preserveSelection: false });
+    elements.uploadMessage.className = "upload-message success"; elements.uploadMessage.textContent = "Excel을 삭제했습니다. Dashboard 집계에서도 제외됩니다.";
+  } catch (error) { elements.uploadMessage.className = "upload-message error"; elements.uploadMessage.textContent = error.message; renderFileList(); }
 }
 
 async function selectFile(fileId) {
@@ -405,6 +428,7 @@ elements.fileInput.addEventListener("change", () => chooseUpload(elements.fileIn
 elements.fileDropzone.addEventListener("dragover", (event) => { event.preventDefault(); elements.fileDropzone.classList.add("dragging"); }); elements.fileDropzone.addEventListener("dragleave", () => elements.fileDropzone.classList.remove("dragging"));
 elements.fileDropzone.addEventListener("drop", (event) => { event.preventDefault(); elements.fileDropzone.classList.remove("dragging"); chooseUpload(event.dataTransfer.files[0]); });
 elements.fileList.addEventListener("change", () => { if (elements.fileList.value) selectFile(elements.fileList.value); });
+elements.deleteFileButton.addEventListener("click", deleteSelectedFile);
 elements.sheetSelect.addEventListener("change", async () => { state.selectedSheetId = elements.sheetSelect.value; state.currentPage = 1; await loadTablePage(); });
 elements.previousPage.addEventListener("click", async () => { if (state.currentPage > 1) { state.currentPage -= 1; await loadTablePage(); } }); elements.nextPage.addEventListener("click", async () => { const sheet = selectedSheet(); if (sheet && state.currentPage < sheet.page_count) { state.currentPage += 1; await loadTablePage(); } });
 document.addEventListener("visibilitychange", () => { if (!document.hidden && state.activeRun) pollActiveRun(); });
