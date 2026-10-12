@@ -65,6 +65,7 @@ async function authenticateCandidate(token) {
 function showView(name) {
   document.querySelectorAll(".app-view").forEach((view) => { view.hidden = view.id !== `${name}-view`; });
   document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === name));
+  elements.runProgress.classList.toggle("outside-excel-view", name !== "excel");
   elements.appScreen.classList.remove("menu-open");
   if (name === "matrix") ensureMatrixData();
 }
