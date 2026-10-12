@@ -11,6 +11,7 @@ const state = {
   workbook: null, selectedSheetId: null, currentPage: 1, activeRun: null, pollTimer: null, elapsedTimer: null,
   accessOpen: false, authenticationPending: false, authenticationTimer: null,
   authenticationRequestId: 0, authenticationController: null,
+  matrixRecords: [], matrixSources: [], matrixLoaded: false, matrixLoading: false, matrixFileSignature: "", matrixModalParameter: null,
 };
 
 const ids = [
@@ -24,6 +25,9 @@ const ids = [
   "dashboard-dataset-count", "dashboard-measurement-count", "dashboard-out-rate", "dashboard-missing-spec",
   "dashboard-spec-position", "dashboard-status-donut", "dashboard-status-legend", "dashboard-parameter-bars", "dashboard-chambers", "dashboard-heatmap",
   "history-total", "history-success", "history-failure", "history-average", "history-body", "updates-timeline",
+  "matrix-source-select", "matrix-file-pattern", "matrix-product-select", "matrix-product-search", "matrix-parameter-search",
+  "matrix-parameter-count", "matrix-kit-count", "matrix-record-count", "matrix-filter-summary", "matrix-loading", "matrix-loading-message",
+  "matrix-empty", "matrix-card-grid", "matrix-modal", "matrix-modal-title", "matrix-modal-subtitle", "matrix-modal-chart", "matrix-modal-table", "matrix-modal-close",
 ];
 const elements = Object.fromEntries(ids.map((id) => [id.replace(/-([a-z])/g, (_, c) => c.toUpperCase()), document.getElementById(id)]));
 function showRootScreen(name) {
@@ -62,6 +66,7 @@ function showView(name) {
   document.querySelectorAll(".app-view").forEach((view) => { view.hidden = view.id !== `${name}-view`; });
   document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === name));
   elements.appScreen.classList.remove("menu-open");
+  if (name === "matrix") ensureMatrixData();
 }
 
 function showContentView(name) {
@@ -98,9 +103,10 @@ async function verifyAccess(token, signal) {
 
 function clearRunTimers() { clearTimeout(state.pollTimer); clearInterval(state.elapsedTimer); state.pollTimer = null; state.elapsedTimer = null; }
 function resetState() {
-  clearRunTimers(); cancelAuthenticationAttempt(); Object.assign(state, { token: null, selectedUpload: null, files: [], analysisHistory: [], updateHistory: [], selectedFileId: null, workbook: null, selectedSheetId: null, currentPage: 1, activeRun: null });
+  clearRunTimers(); cancelAuthenticationAttempt(); Object.assign(state, { token: null, selectedUpload: null, files: [], analysisHistory: [], updateHistory: [], selectedFileId: null, workbook: null, selectedSheetId: null, currentPage: 1, activeRun: null, matrixRecords: [], matrixSources: [], matrixLoaded: false, matrixLoading: false, matrixFileSignature: "", matrixModalParameter: null });
   elements.tokenInput.value = ""; elements.fileInput.value = ""; elements.fileLabel.textContent = "파일 선택";
   elements.uploadButton.disabled = true; elements.uploadMessage.textContent = ""; elements.runProgress.hidden = true; elements.tableContainer.replaceChildren();
+  closeMatrixModal();
   setAccessOpen(false);
 }
 function handleExpiredAuthentication() {
@@ -151,6 +157,10 @@ async function loadAllData({ preserveSelection = true } = {}) {
       getRawFiles(), getOptionalJson(CONFIG.indexPath, { files: [] }), getOptionalJson(CONFIG.analysisHistoryPath, []), getOptionalJson(CONFIG.updateHistoryPath, []),
     ]);
     state.files = mergeFileLists(rawFiles, processed); state.analysisHistory = Array.isArray(history) ? history : history.runs || [];
+    const nextMatrixSignature = matrixFileSignature();
+    if (state.matrixFileSignature && state.matrixFileSignature !== nextMatrixSignature) {
+      state.matrixLoaded = false; state.matrixRecords = []; state.matrixSources = [];
+    }
     state.updateHistory = Array.isArray(updates) ? updates : updates.releases || updates.updates || [];
     renderFileList(); renderDashboard(); renderHistory(); renderUpdates();
     if (preserveSelection && state.selectedFileId) { const selected = state.files.find((file) => file.id === state.selectedFileId); if (selected) await selectFile(selected.id); }
@@ -406,7 +416,135 @@ async function uploadSelectedFile() {
   finally { elements.fileInput.disabled = false; }
 }
 
-async function refreshEverything() { await loadAllData(); if (state.activeRun) pollActiveRun(); }
+function matrixFileSignature() {
+  return state.files.filter((file) => file.status === "ready" && !file.is_duplicate && file.workbook_path)
+    .map((file) => `${file.id}:${file.workbook_path}`).sort().join("|");
+}
+function matrixDate(file) {
+  const parsed = new Date(file.uploaded_at); if (!Number.isNaN(parsed.getTime())) {
+    const pad = (value) => String(value).padStart(2, "0");
+    return `${parsed.getFullYear()}${pad(parsed.getMonth() + 1)}${pad(parsed.getDate())}`;
+  }
+  const matched = String(file.id || "").match(/(20\d{6})/); return matched?.[1] || "날짜미상";
+}
+function matrixText(value, fallback) { const text = String(value ?? "").trim(); return text || fallback; }
+function matrixNumber(value) { const number = Number(value); return Number.isFinite(number) ? number : null; }
+function matrixSourceLabel(kitId, file) {
+  const normalized = matrixText(kitId, file.dataset_label || file.original_name || "Kit").replace(/[\\/:*?"<>|]+/g, "-");
+  return `${normalized}_${matrixDate(file)}`;
+}
+async function loadMatrixFile(file, position, total) {
+  elements.matrixLoadingMessage.textContent = `${position} / ${total} · ${file.original_name}`;
+  const workbook = await getRawJson(file.workbook_path); const records = []; const sources = [];
+  for (const sheet of workbook.sheets || []) {
+    const sheetRecords = []; const sourceId = `${file.id}:${sheet.id}`;
+    const pages = await Promise.all(Array.from({ length: sheet.page_count || 0 }, (_, index) => {
+      const pageName = `${sheet.id}-page-${String(index + 1).padStart(4, "0")}.json`;
+      return getRawJson(`${workbook.processed_directory}/${pageName}`);
+    }));
+    pages.forEach((page) => (page.rows || []).forEach((row) => {
+      const actual = matrixNumber(row[13]); if (actual === null) return;
+      const parameter = matrixText(row[9], "미분류 Parameter"); const kitId = matrixText(row[0], file.dataset_label || "Kit ID 없음");
+      sheetRecords.push({ sourceId, sheetName: sheet.name, kitId, product: matrixText(row[5], "미분류"), parameter, actual,
+        lsl: matrixNumber(row[16]), usl: matrixNumber(row[18]), unit: matrixText(row[19], ""), sourceLabel: "" });
+    }));
+    const label = matrixSourceLabel(sheetRecords[0]?.kitId, file); sheetRecords.forEach((record) => { record.sourceLabel = label; }); records.push(...sheetRecords);
+    sources.push({ id: sourceId, label, originalName: file.original_name, sheetName: sheet.name, date: matrixDate(file), count: sheetRecords.length });
+  }
+  return { sources, records };
+}
+async function ensureMatrixData(force = false) {
+  if (!state.token || state.matrixLoading) return;
+  const signature = matrixFileSignature();
+  if (!force && state.matrixLoaded && state.matrixFileSignature === signature) { renderMatrix(); return; }
+  const files = state.files.filter((file) => file.status === "ready" && !file.is_duplicate && file.workbook_path);
+  state.matrixLoading = true; elements.matrixLoading.hidden = false; elements.matrixEmpty.hidden = true; elements.matrixCardGrid.replaceChildren();
+  elements.matrixSourceSelect.disabled = true; elements.matrixProductSelect.disabled = true;
+  try {
+    const loaded = [];
+    for (let index = 0; index < files.length; index += 1) loaded.push(await loadMatrixFile(files[index], index + 1, files.length));
+    state.matrixRecords = loaded.flatMap((item) => item.records); state.matrixSources = loaded.flatMap((item) => item.sources);
+    state.matrixFileSignature = signature; state.matrixLoaded = true; populateMatrixFilters(); renderMatrix();
+  } catch (error) {
+    elements.matrixEmpty.hidden = false; elements.matrixEmpty.querySelector("h3").textContent = "매트릭스를 불러오지 못했습니다";
+    elements.matrixEmpty.querySelector("p").textContent = error.message;
+  } finally {
+    state.matrixLoading = false; elements.matrixLoading.hidden = true; elements.matrixSourceSelect.disabled = false; elements.matrixProductSelect.disabled = false;
+  }
+}
+function populateMatrixFilters() {
+  const selectedSource = elements.matrixSourceSelect.value || "all"; elements.matrixSourceSelect.replaceChildren();
+  const all = document.createElement("option"); all.value = "all"; all.textContent = `전체 파일 (${state.matrixSources.length})`; elements.matrixSourceSelect.append(all);
+  state.matrixSources.forEach((source) => { const option = document.createElement("option"); option.value = source.id; option.textContent = `${source.label} · ${source.sheetName} · ${source.count.toLocaleString("ko-KR")}건`; elements.matrixSourceSelect.append(option); });
+  elements.matrixSourceSelect.value = state.matrixSources.some((source) => source.id === selectedSource) ? selectedSource : "all";
+  const selectedProduct = elements.matrixProductSelect.value; const products = [...new Set(state.matrixRecords.map((record) => record.product))].sort((a, b) => a.localeCompare(b, "ko", { numeric: true }));
+  elements.matrixProductSelect.replaceChildren(); const everyProduct = document.createElement("option"); everyProduct.value = ""; everyProduct.textContent = `전체 제품 (${products.length})`; elements.matrixProductSelect.append(everyProduct);
+  products.forEach((product) => { const option = document.createElement("option"); option.value = product; option.textContent = product; elements.matrixProductSelect.append(option); });
+  elements.matrixProductSelect.value = products.includes(selectedProduct) ? selectedProduct : "";
+}
+function filteredMatrixRecords() {
+  const source = elements.matrixSourceSelect.value; const product = elements.matrixProductSelect.value;
+  const productSearch = normalizedIdentity(elements.matrixProductSearch.value); const parameterSearch = normalizedIdentity(elements.matrixParameterSearch.value);
+  return state.matrixRecords.filter((record) => (source === "all" || record.sourceId === source) && (!product || record.product === product)
+    && (!productSearch || normalizedIdentity(record.product).includes(productSearch)) && (!parameterSearch || normalizedIdentity(record.parameter).includes(parameterSearch)));
+}
+function matrixGroups(records) {
+  const groups = new Map(); records.forEach((record) => { const group = groups.get(record.parameter) || { parameter: record.parameter, records: [], units: new Set() }; group.records.push(record); if (record.unit) group.units.add(record.unit); groups.set(record.parameter, group); });
+  return [...groups.values()].sort((a, b) => a.parameter.localeCompare(b.parameter, "ko", { numeric: true }));
+}
+function matrixSeries(records) {
+  const kits = new Map(); records.forEach((record) => { const point = kits.get(record.kitId) || { kitId: record.kitId, values: [], lsl: [], usl: [], sources: new Set(), alert: false }; point.values.push(record.actual); if (record.lsl !== null) point.lsl.push(record.lsl); if (record.usl !== null) point.usl.push(record.usl); point.sources.add(record.sourceLabel); if ((record.lsl !== null && record.actual < record.lsl) || (record.usl !== null && record.actual > record.usl)) point.alert = true; kits.set(record.kitId, point); });
+  return [...kits.values()].map((point) => ({ kitId: point.kitId, sourceLabels: [...point.sources], count: point.values.length,
+    mean: point.values.reduce((sum, value) => sum + value, 0) / point.values.length, min: Math.min(...point.values), max: Math.max(...point.values),
+    lsl: point.lsl.length ? point.lsl.reduce((sum, value) => sum + value, 0) / point.lsl.length : null,
+    usl: point.usl.length ? point.usl.reduce((sum, value) => sum + value, 0) / point.usl.length : null, alert: point.alert }))
+    .sort((a, b) => a.kitId.localeCompare(b.kitId, "ko", { numeric: true }));
+}
+function formatMatrixNumber(value) {
+  const absolute = Math.abs(value); const digits = absolute >= 100 ? 1 : absolute >= 10 ? 2 : absolute >= 1 ? 3 : 4;
+  return Number(value).toLocaleString("ko-KR", { maximumFractionDigits: digits });
+}
+function svgNode(name, attributes = {}, textValue = "") {
+  const node = document.createElementNS("http://www.w3.org/2000/svg", name); Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, String(value))); if (textValue) node.textContent = textValue; return node;
+}
+function buildMatrixChart(series, large = false) {
+  const width = large ? 920 : 440; const height = large ? 390 : 205; const margin = large ? { top: 24, right: 30, bottom: 68, left: 70 } : { top: 18, right: 16, bottom: 48, left: 50 };
+  const svg = svgNode("svg", { viewBox: `0 0 ${width} ${height}`, role: "img", "aria-label": "Kit ID별 Actual 매트릭스 차트", preserveAspectRatio: "none" });
+  if (!series.length) return svg; let minimum = Math.min(...series.map((point) => point.min)); let maximum = Math.max(...series.map((point) => point.max));
+  if (minimum === maximum) { const delta = Math.abs(minimum || 1) * .08; minimum -= delta; maximum += delta; } const padding = (maximum - minimum) * .12; minimum -= padding; maximum += padding;
+  const plotWidth = width - margin.left - margin.right; const plotHeight = height - margin.top - margin.bottom;
+  const x = (index) => margin.left + (series.length === 1 ? plotWidth / 2 : (index / (series.length - 1)) * plotWidth); const y = (value) => margin.top + ((maximum - value) / (maximum - minimum)) * plotHeight;
+  for (let index = 0; index <= 4; index += 1) { const value = maximum - ((maximum - minimum) * index / 4); const py = margin.top + (plotHeight * index / 4); svg.append(svgNode("line", { x1: margin.left, x2: width - margin.right, y1: py, y2: py, class: "matrix-grid-line" }), svgNode("text", { x: margin.left - 8, y: py + 3, "text-anchor": "end", class: "matrix-chart-text" }, formatMatrixNumber(value))); }
+  svg.append(svgNode("line", { x1: margin.left, x2: margin.left, y1: margin.top, y2: height - margin.bottom, class: "matrix-axis-line" }), svgNode("line", { x1: margin.left, x2: width - margin.right, y1: height - margin.bottom, y2: height - margin.bottom, class: "matrix-axis-line" }));
+  const path = series.map((point, index) => `${index ? "L" : "M"}${x(index)},${y(point.mean)}`).join(" "); svg.append(svgNode("path", { d: path, class: "matrix-series-line" }));
+  const labelStep = Math.max(1, Math.ceil(series.length / (large ? 12 : 6)));
+  series.forEach((point, index) => { const px = x(index); svg.append(svgNode("line", { x1: px, x2: px, y1: y(point.max), y2: y(point.min), class: "matrix-range-line" })); const circle = svgNode("circle", { cx: px, cy: y(point.mean), r: large ? 5 : 4, class: `matrix-point${point.alert ? " alert" : ""}` }); circle.append(svgNode("title", {}, `${point.kitId}\n평균 ${formatMatrixNumber(point.mean)} · 범위 ${formatMatrixNumber(point.min)} ~ ${formatMatrixNumber(point.max)} · ${point.count}건`)); svg.append(circle);
+    if (index % labelStep === 0 || index === series.length - 1) { const label = point.kitId.length > (large ? 20 : 12) ? `${point.kitId.slice(0, large ? 19 : 11)}…` : point.kitId; svg.append(svgNode("text", { x: px, y: height - margin.bottom + 17, "text-anchor": "end", transform: `rotate(-28 ${px} ${height - margin.bottom + 17})`, class: "matrix-chart-label" }, label)); } });
+  return svg;
+}
+function renderMatrix() {
+  if (!state.matrixLoaded) return; closeMatrixModal(); const records = filteredMatrixRecords(); const groups = matrixGroups(records); const kits = new Set(records.map((record) => record.kitId));
+  elements.matrixParameterCount.textContent = groups.length.toLocaleString("ko-KR"); elements.matrixKitCount.textContent = kits.size.toLocaleString("ko-KR"); elements.matrixRecordCount.textContent = records.length.toLocaleString("ko-KR");
+  const source = elements.matrixSourceSelect.value === "all" ? "전체 파일" : state.matrixSources.find((item) => item.id === elements.matrixSourceSelect.value)?.label || "선택 파일";
+  elements.matrixFilePattern.textContent = elements.matrixSourceSelect.value === "all" ? "표시 형식: [A열 값]_[날짜]" : source;
+  elements.matrixFilterSummary.textContent = `${source} · ${elements.matrixProductSelect.value || "전체 F열 제품"}${elements.matrixProductSearch.value ? ` · “${elements.matrixProductSearch.value}” 검색` : ""}`;
+  elements.matrixCardGrid.replaceChildren(); elements.matrixEmpty.hidden = groups.length > 0;
+  groups.forEach((group, index) => { const series = matrixSeries(group.records); const card = document.createElement("article"); card.className = "matrix-card"; card.tabIndex = 0; card.setAttribute("role", "button"); card.setAttribute("aria-label", `${group.parameter} 확대 보기`);
+    const header = document.createElement("header"); header.className = "matrix-card-header"; const title = document.createElement("div"); title.className = "matrix-card-title"; const eyebrow = document.createElement("span"); eyebrow.textContent = `J-${String(index + 1).padStart(2, "0")}`; const heading = document.createElement("h3"); heading.textContent = group.parameter; heading.title = group.parameter; const meta = document.createElement("small"); meta.textContent = `${[...group.units].join(" · ") || "단위 없음"} · ${group.records.length.toLocaleString("ko-KR")}건`; title.append(eyebrow, heading, meta); const expand = document.createElement("span"); expand.className = "matrix-expand"; expand.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>'; header.append(title, expand);
+    const chart = document.createElement("div"); chart.className = "matrix-chart"; chart.append(buildMatrixChart(series)); const footer = document.createElement("footer"); footer.className = "matrix-card-footer"; const average = group.records.reduce((sum, record) => sum + record.actual, 0) / group.records.length; const alerts = series.filter((point) => point.alert).length; const left = document.createElement("span"); left.innerHTML = `평균 <strong>${formatMatrixNumber(average)}</strong>`; const right = document.createElement("span"); right.textContent = `${series.length} Kit · ${alerts ? `규격 이탈 ${alerts}` : "규격 이탈 없음"}`; footer.append(left, right); card.append(header, chart, footer);
+    const open = () => openMatrixModal(group); card.addEventListener("click", open); card.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); } }); elements.matrixCardGrid.append(card); });
+}
+function openMatrixModal(group) {
+  state.matrixModalParameter = group.parameter; state.matrixLastFocus = document.activeElement; const series = matrixSeries(group.records); elements.matrixModalTitle.textContent = group.parameter;
+  elements.matrixModalSubtitle.textContent = `${[...group.units].join(" · ") || "단위 없음"} · ${series.length} Kit ID · ${group.records.length.toLocaleString("ko-KR")}개 측정값`;
+  elements.matrixModalChart.replaceChildren(buildMatrixChart(series, true)); const table = document.createElement("table"); const head = document.createElement("thead"); const headRow = document.createElement("tr"); ["A열 Kit ID", "평균", "최소", "최대", "측정 수", "판정"].forEach((label) => { const cell = document.createElement("th"); cell.textContent = label; headRow.append(cell); }); head.append(headRow); const body = document.createElement("tbody");
+  series.forEach((point) => { const row = document.createElement("tr"); [point.kitId, formatMatrixNumber(point.mean), formatMatrixNumber(point.min), formatMatrixNumber(point.max), point.count.toLocaleString("ko-KR"), point.alert ? "규격 이탈 포함" : "정상"].forEach((value) => { const cell = document.createElement("td"); cell.textContent = value; row.append(cell); }); body.append(row); }); table.append(head, body); elements.matrixModalTable.replaceChildren(table); elements.matrixModal.hidden = false; document.body.classList.add("matrix-modal-open"); requestAnimationFrame(() => elements.matrixModalClose.focus());
+}
+function closeMatrixModal() {
+  if (!elements?.matrixModal || elements.matrixModal.hidden) return; elements.matrixModal.hidden = true; document.body.classList.remove("matrix-modal-open"); state.matrixModalParameter = null; const focus = state.matrixLastFocus; state.matrixLastFocus = null; if (focus?.isConnected) focus.focus();
+}
+
+async function refreshEverything() { await loadAllData(); if (!document.getElementById("matrix-view").hidden) await ensureMatrixData(true); if (state.activeRun) pollActiveRun(); }
 document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
 document.querySelectorAll("[data-go-view]").forEach((button) => button.addEventListener("click", () => showView(button.dataset.goView)));
 elements.mobileMenuButton.addEventListener("click", () => elements.appScreen.classList.toggle("menu-open"));
@@ -427,5 +565,9 @@ elements.fileList.addEventListener("change", () => { if (elements.fileList.value
 elements.deleteFileButton.addEventListener("click", deleteSelectedFile);
 elements.sheetSelect.addEventListener("change", async () => { state.selectedSheetId = elements.sheetSelect.value; state.currentPage = 1; await loadTablePage(); });
 elements.previousPage.addEventListener("click", async () => { if (state.currentPage > 1) { state.currentPage -= 1; await loadTablePage(); } }); elements.nextPage.addEventListener("click", async () => { const sheet = selectedSheet(); if (sheet && state.currentPage < sheet.page_count) { state.currentPage += 1; await loadTablePage(); } });
+elements.matrixSourceSelect.addEventListener("change", renderMatrix); elements.matrixProductSelect.addEventListener("change", renderMatrix);
+elements.matrixProductSearch.addEventListener("input", renderMatrix); elements.matrixParameterSearch.addEventListener("input", renderMatrix);
+elements.matrixModalClose.addEventListener("click", closeMatrixModal); document.querySelectorAll("[data-matrix-close]").forEach((button) => button.addEventListener("click", closeMatrixModal));
+document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !elements.matrixModal.hidden) closeMatrixModal(); });
 document.addEventListener("visibilitychange", () => { if (!document.hidden && state.activeRun) pollActiveRun(); });
 showRootScreen("login");

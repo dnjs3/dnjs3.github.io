@@ -6,7 +6,7 @@
   <meta name="referrer" content="no-referrer">
   <meta name="description" content="비공개 CKM Excel 분석 대시보드">
   <link rel="icon" type="image/svg+xml" href="assets/book-bookmark.svg">
-  <link rel="stylesheet" href="css/app.css?v=20261012-6">
+  <link rel="stylesheet" href="css/app.css?v=20261012-7">
   <title>bookmark</title>
 </head>
 <body>
@@ -49,6 +49,10 @@
           <button class="nav-item active" type="button" data-view="dashboard">
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
             Dashboard
+          </button>
+          <button class="nav-item" type="button" data-view="matrix">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M4 10h16M10 4v16M15 4v16M4 15h16"/></svg>
+            데이터 매트릭스
           </button>
           <p class="nav-group-label">DATA</p>
           <button class="nav-item" type="button" data-view="excel">
@@ -165,6 +169,50 @@
             </section>
           </section>
 
+          <section id="matrix-view" class="app-view" hidden>
+            <header class="matrix-heading">
+              <div>
+                <span>DATA MATRIX</span>
+                <h2>A열 Kit ID × N열 Actual</h2>
+                <p>F열 제품으로 범위를 좁히고, J열 Parameter마다 독립된 그래프를 확인합니다.</p>
+              </div>
+              <div class="matrix-axis-map" aria-label="열 매핑">
+                <span><b>A열</b> Kit ID</span><i>→</i><span><b>N열</b> Actual</span>
+              </div>
+            </header>
+
+            <section class="panel matrix-toolbar" aria-label="데이터 매트릭스 필터">
+              <label class="matrix-control matrix-source-control">
+                <span>분석 파일</span>
+                <select id="matrix-source-select"><option value="all">전체 파일</option></select>
+                <small id="matrix-file-pattern">표시 형식: [A열 값]_[날짜]</small>
+              </label>
+              <label class="matrix-control">
+                <span>F열 제품 / 카테고리</span>
+                <select id="matrix-product-select"><option value="">전체 제품</option></select>
+              </label>
+              <label class="matrix-control matrix-search-control">
+                <span>F열 검색</span>
+                <span class="matrix-search-box"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg><input id="matrix-product-search" type="search" placeholder="제품명 또는 카테고리 검색" autocomplete="off"></span>
+              </label>
+              <label class="matrix-control matrix-search-control">
+                <span>J열 Parameter 검색</span>
+                <span class="matrix-search-box"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg><input id="matrix-parameter-search" type="search" placeholder="Parameter 카드 검색" autocomplete="off"></span>
+              </label>
+            </section>
+
+            <div class="matrix-summary-row">
+              <div><strong id="matrix-parameter-count">0</strong><span>Parameter 카드</span></div>
+              <div><strong id="matrix-kit-count">0</strong><span>Kit ID</span></div>
+              <div><strong id="matrix-record-count">0</strong><span>측정값</span></div>
+              <p id="matrix-filter-summary">데이터를 불러올 준비가 되었습니다.</p>
+            </div>
+
+            <div id="matrix-loading" class="matrix-loading" hidden><div class="spinner"></div><strong>매트릭스 데이터를 구성하고 있습니다</strong><p id="matrix-loading-message">분석 파일을 확인하는 중입니다.</p></div>
+            <div id="matrix-empty" class="matrix-empty" hidden><div class="sheet-symbol"></div><h3>표시할 데이터가 없습니다</h3><p>완료된 Excel이 있는지 확인하거나 F열 필터를 변경해보세요.</p></div>
+            <div id="matrix-card-grid" class="matrix-card-grid"></div>
+          </section>
+
           <section id="history-view" class="app-view" hidden>
             <div class="history-summary">
               <article><span>전체 실행</span><strong id="history-total">0</strong></article>
@@ -185,7 +233,15 @@
       </div>
     </section>
   </main>
+  <div id="matrix-modal" class="matrix-modal" hidden>
+    <button class="matrix-modal-backdrop" type="button" data-matrix-close aria-label="확대 보기 닫기"></button>
+    <section class="matrix-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="matrix-modal-title">
+      <header><div><span>PARAMETER DETAIL</span><h2 id="matrix-modal-title">Parameter</h2><p id="matrix-modal-subtitle"></p></div><button id="matrix-modal-close" class="matrix-modal-close" type="button" aria-label="닫기">×</button></header>
+      <div id="matrix-modal-chart" class="matrix-modal-chart"></div>
+      <div id="matrix-modal-table" class="matrix-modal-table"></div>
+    </section>
+  </div>
   <script src="js/gaze-background.js?v=20261001-2" defer></script>
-  <script src="js/app.js?v=20261012-6" defer></script>
+  <script src="js/app.js?v=20261012-7" defer></script>
 </body>
 </html>
