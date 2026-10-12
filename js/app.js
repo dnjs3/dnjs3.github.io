@@ -25,7 +25,8 @@ const ids = [
   "dashboard-dataset-count", "dashboard-measurement-count", "dashboard-out-rate", "dashboard-missing-spec",
   "dashboard-spec-position", "dashboard-status-donut", "dashboard-status-legend", "dashboard-parameter-bars", "dashboard-chambers", "dashboard-heatmap",
   "history-total", "history-success", "history-failure", "history-average", "history-body", "updates-timeline",
-  "matrix-source-select", "matrix-file-pattern", "matrix-product-select", "matrix-product-search", "matrix-parameter-search",
+  "matrix-kit-start", "matrix-kit-end", "matrix-kit-extra", "matrix-kit-clear", "matrix-kit-selection-summary", "matrix-kit-available",
+  "matrix-product-select", "matrix-product-search", "matrix-parameter-search",
   "matrix-parameter-count", "matrix-kit-count", "matrix-record-count", "matrix-filter-summary", "matrix-loading", "matrix-loading-message",
   "matrix-empty", "matrix-card-grid", "matrix-modal", "matrix-modal-title", "matrix-modal-subtitle", "matrix-modal-chart", "matrix-modal-table", "matrix-modal-close",
 ];
@@ -430,6 +431,10 @@ function matrixDate(file) {
 }
 function matrixText(value, fallback) { const text = String(value ?? "").trim(); return text || fallback; }
 function matrixNumber(value) { const number = Number(value); return Number.isFinite(number) ? number : null; }
+function matrixKitNumber(value) {
+  const text = String(value || "").normalize("NFKC"); const ckm = text.match(/CKM\s*(?:#|NO\.?)?\s*[_-]?\s*(\d+)/i);
+  return ckm ? Number(ckm[1]) : null;
+}
 function matrixSourceLabel(kitId, file) {
   const normalized = matrixText(kitId, file.dataset_label || file.original_name || "Kit").replace(/[\\/:*?"<>|]+/g, "-");
   return `${normalized}_${matrixDate(file)}`;
@@ -446,7 +451,7 @@ async function loadMatrixFile(file, position, total) {
     pages.forEach((page) => (page.rows || []).forEach((row) => {
       const actual = matrixNumber(row[13]); if (actual === null) return;
       const parameter = matrixText(row[9], "미분류 Parameter"); const kitId = matrixText(row[0], file.dataset_label || "Kit ID 없음");
-      sheetRecords.push({ sourceId, sheetName: sheet.name, kitId, product: matrixText(row[5], "미분류"), parameter, actual,
+      sheetRecords.push({ sourceId, sheetName: sheet.name, kitId, kitNumber: matrixKitNumber(kitId), product: matrixText(row[5], "미분류"), parameter, actual,
         lsl: matrixNumber(row[16]), usl: matrixNumber(row[18]), unit: matrixText(row[19], ""), sourceLabel: "" });
     }));
     const label = matrixSourceLabel(sheetRecords[0]?.kitId, file); sheetRecords.forEach((record) => { record.sourceLabel = label; }); records.push(...sheetRecords);
@@ -460,7 +465,7 @@ async function ensureMatrixData(force = false) {
   if (!force && state.matrixLoaded && state.matrixFileSignature === signature) { renderMatrix(); return; }
   const files = state.files.filter((file) => file.status === "ready" && !file.is_duplicate && file.workbook_path);
   state.matrixLoading = true; elements.matrixLoading.hidden = false; elements.matrixEmpty.hidden = true; elements.matrixCardGrid.replaceChildren();
-  elements.matrixSourceSelect.disabled = true; elements.matrixProductSelect.disabled = true;
+  elements.matrixKitStart.disabled = true; elements.matrixKitEnd.disabled = true; elements.matrixKitExtra.disabled = true; elements.matrixProductSelect.disabled = true;
   try {
     const loaded = [];
     for (let index = 0; index < files.length; index += 1) loaded.push(await loadMatrixFile(files[index], index + 1, files.length));
@@ -470,23 +475,39 @@ async function ensureMatrixData(force = false) {
     elements.matrixEmpty.hidden = false; elements.matrixEmpty.querySelector("h3").textContent = "매트릭스를 불러오지 못했습니다";
     elements.matrixEmpty.querySelector("p").textContent = error.message;
   } finally {
-    state.matrixLoading = false; elements.matrixLoading.hidden = true; elements.matrixSourceSelect.disabled = false; elements.matrixProductSelect.disabled = false;
+    state.matrixLoading = false; elements.matrixLoading.hidden = true; elements.matrixKitStart.disabled = false; elements.matrixKitEnd.disabled = false; elements.matrixKitExtra.disabled = false; elements.matrixProductSelect.disabled = false;
   }
 }
 function populateMatrixFilters() {
-  const selectedSource = elements.matrixSourceSelect.value || "all"; elements.matrixSourceSelect.replaceChildren();
-  const all = document.createElement("option"); all.value = "all"; all.textContent = `전체 파일 (${state.matrixSources.length})`; elements.matrixSourceSelect.append(all);
-  state.matrixSources.forEach((source) => { const option = document.createElement("option"); option.value = source.id; option.textContent = `${source.label} · ${source.sheetName} · ${source.count.toLocaleString("ko-KR")}건`; elements.matrixSourceSelect.append(option); });
-  elements.matrixSourceSelect.value = state.matrixSources.some((source) => source.id === selectedSource) ? selectedSource : "all";
+  const kitNumbers = [...new Set(state.matrixRecords.map((record) => record.kitNumber).filter(Number.isFinite))].sort((a, b) => a - b);
+  if (kitNumbers.length) {
+    const minimum = kitNumbers[0]; const maximum = kitNumbers.at(-1); elements.matrixKitStart.min = String(minimum); elements.matrixKitEnd.min = String(minimum);
+    elements.matrixKitStart.placeholder = `시작 CKM ${minimum}`; elements.matrixKitEnd.placeholder = `끝 CKM ${maximum}`;
+    elements.matrixKitAvailable.textContent = `현재 CKM ${minimum} ~ ${maximum} · ${kitNumbers.length.toLocaleString("ko-KR")}개 누적`;
+  } else elements.matrixKitAvailable.textContent = "A열 제목에서 CKM 번호를 찾지 못했습니다.";
   const selectedProduct = elements.matrixProductSelect.value; const products = [...new Set(state.matrixRecords.map((record) => record.product))].sort((a, b) => a.localeCompare(b, "ko", { numeric: true }));
   elements.matrixProductSelect.replaceChildren(); const everyProduct = document.createElement("option"); everyProduct.value = ""; everyProduct.textContent = `전체 제품 (${products.length})`; elements.matrixProductSelect.append(everyProduct);
   products.forEach((product) => { const option = document.createElement("option"); option.value = product; option.textContent = product; elements.matrixProductSelect.append(option); });
   elements.matrixProductSelect.value = products.includes(selectedProduct) ? selectedProduct : "";
 }
+function matrixKitSelection() {
+  const startValue = Number(elements.matrixKitStart.value); const endValue = Number(elements.matrixKitEnd.value);
+  const hasStart = elements.matrixKitStart.value !== "" && Number.isFinite(startValue); const hasEnd = elements.matrixKitEnd.value !== "" && Number.isFinite(endValue);
+  const low = hasStart && hasEnd ? Math.min(startValue, endValue) : hasStart ? startValue : hasEnd ? endValue : null;
+  const high = hasStart && hasEnd ? Math.max(startValue, endValue) : low;
+  const extras = [...new Set((elements.matrixKitExtra.value.match(/\d+/g) || []).map(Number).filter(Number.isFinite))].sort((a, b) => a - b);
+  return { low, high, extras, active: low !== null || extras.length > 0 };
+}
+function matrixKitSelectionLabel(selection = matrixKitSelection()) {
+  if (!selection.active) return "전체 CKM"; const labels = [];
+  if (selection.low !== null) labels.push(selection.low === selection.high ? `CKM ${selection.low}` : `CKM ${selection.low} ~ ${selection.high}`);
+  const additional = selection.extras.filter((number) => selection.low === null || number < selection.low || number > selection.high);
+  if (additional.length) labels.push(`추가 ${additional.map((number) => `CKM ${number}`).join(", ")}`); return labels.join(" + ");
+}
 function filteredMatrixRecords() {
-  const source = elements.matrixSourceSelect.value; const product = elements.matrixProductSelect.value;
+  const selection = matrixKitSelection(); const extras = new Set(selection.extras); const product = elements.matrixProductSelect.value;
   const productSearch = normalizedIdentity(elements.matrixProductSearch.value); const parameterSearch = normalizedIdentity(elements.matrixParameterSearch.value);
-  return state.matrixRecords.filter((record) => (source === "all" || record.sourceId === source) && (!product || record.product === product)
+  return state.matrixRecords.filter((record) => (!selection.active || (record.kitNumber !== null && ((selection.low !== null && record.kitNumber >= selection.low && record.kitNumber <= selection.high) || extras.has(record.kitNumber)))) && (!product || record.product === product)
     && (!productSearch || normalizedIdentity(record.product).includes(productSearch)) && (!parameterSearch || normalizedIdentity(record.parameter).includes(parameterSearch)));
 }
 function matrixGroups(records) {
@@ -494,12 +515,12 @@ function matrixGroups(records) {
   return [...groups.values()].sort((a, b) => a.parameter.localeCompare(b.parameter, "ko", { numeric: true }));
 }
 function matrixSeries(records) {
-  const kits = new Map(); records.forEach((record) => { const point = kits.get(record.kitId) || { kitId: record.kitId, values: [], lsl: [], usl: [], sources: new Set(), alert: false }; point.values.push(record.actual); if (record.lsl !== null) point.lsl.push(record.lsl); if (record.usl !== null) point.usl.push(record.usl); point.sources.add(record.sourceLabel); if ((record.lsl !== null && record.actual < record.lsl) || (record.usl !== null && record.actual > record.usl)) point.alert = true; kits.set(record.kitId, point); });
-  return [...kits.values()].map((point) => ({ kitId: point.kitId, sourceLabels: [...point.sources], count: point.values.length,
+  const kits = new Map(); records.forEach((record) => { const key = record.kitNumber !== null ? `ckm:${record.kitNumber}` : `title:${record.kitId}`; const point = kits.get(key) || { kitId: record.kitNumber !== null ? `CKM ${record.kitNumber}` : record.kitId, kitNumber: record.kitNumber, values: [], lsl: [], usl: [], sources: new Set(), alert: false }; point.values.push(record.actual); if (record.lsl !== null) point.lsl.push(record.lsl); if (record.usl !== null) point.usl.push(record.usl); point.sources.add(record.sourceLabel); if ((record.lsl !== null && record.actual < record.lsl) || (record.usl !== null && record.actual > record.usl)) point.alert = true; kits.set(key, point); });
+  return [...kits.values()].map((point) => ({ kitId: point.kitId, kitNumber: point.kitNumber, sourceLabels: [...point.sources], count: point.values.length,
     mean: point.values.reduce((sum, value) => sum + value, 0) / point.values.length, min: Math.min(...point.values), max: Math.max(...point.values),
     lsl: point.lsl.length ? point.lsl.reduce((sum, value) => sum + value, 0) / point.lsl.length : null,
     usl: point.usl.length ? point.usl.reduce((sum, value) => sum + value, 0) / point.usl.length : null, alert: point.alert }))
-    .sort((a, b) => a.kitId.localeCompare(b.kitId, "ko", { numeric: true }));
+    .sort((a, b) => (a.kitNumber ?? Number.MAX_SAFE_INTEGER) - (b.kitNumber ?? Number.MAX_SAFE_INTEGER) || a.kitId.localeCompare(b.kitId, "ko", { numeric: true }));
 }
 function formatMatrixNumber(value) {
   const absolute = Math.abs(value); const digits = absolute >= 100 ? 1 : absolute >= 10 ? 2 : absolute >= 1 ? 3 : 4;
@@ -524,11 +545,10 @@ function buildMatrixChart(series, large = false) {
   return svg;
 }
 function renderMatrix() {
-  if (!state.matrixLoaded) return; closeMatrixModal(); const records = filteredMatrixRecords(); const groups = matrixGroups(records); const kits = new Set(records.map((record) => record.kitId));
+  if (!state.matrixLoaded) return; closeMatrixModal(); const records = filteredMatrixRecords(); const groups = matrixGroups(records); const kits = new Set(records.map((record) => record.kitNumber !== null ? `ckm:${record.kitNumber}` : `title:${record.kitId}`));
   elements.matrixParameterCount.textContent = groups.length.toLocaleString("ko-KR"); elements.matrixKitCount.textContent = kits.size.toLocaleString("ko-KR"); elements.matrixRecordCount.textContent = records.length.toLocaleString("ko-KR");
-  const source = elements.matrixSourceSelect.value === "all" ? "전체 파일" : state.matrixSources.find((item) => item.id === elements.matrixSourceSelect.value)?.label || "선택 파일";
-  elements.matrixFilePattern.textContent = elements.matrixSourceSelect.value === "all" ? "표시 형식: [A열 값]_[날짜]" : source;
-  elements.matrixFilterSummary.textContent = `${source} · ${elements.matrixProductSelect.value || "전체 F열 제품"}${elements.matrixProductSearch.value ? ` · “${elements.matrixProductSearch.value}” 검색` : ""}`;
+  const kitLabel = matrixKitSelectionLabel(); elements.matrixKitSelectionSummary.textContent = `${kitLabel} · 실제 데이터 ${kits.size.toLocaleString("ko-KR")}개`;
+  elements.matrixFilterSummary.textContent = `${kitLabel} · ${elements.matrixProductSelect.value || "전체 F열 제품"}${elements.matrixProductSearch.value ? ` · “${elements.matrixProductSearch.value}” 검색` : ""}`;
   elements.matrixCardGrid.replaceChildren(); elements.matrixEmpty.hidden = groups.length > 0;
   groups.forEach((group, index) => { const series = matrixSeries(group.records); const card = document.createElement("article"); card.className = "matrix-card"; card.tabIndex = 0; card.setAttribute("role", "button"); card.setAttribute("aria-label", `${group.parameter} 확대 보기`);
     const header = document.createElement("header"); header.className = "matrix-card-header"; const title = document.createElement("div"); title.className = "matrix-card-title"; const eyebrow = document.createElement("span"); eyebrow.textContent = `J-${String(index + 1).padStart(2, "0")}`; const heading = document.createElement("h3"); heading.textContent = group.parameter; heading.title = group.parameter; const meta = document.createElement("small"); meta.textContent = `${[...group.units].join(" · ") || "단위 없음"} · ${group.records.length.toLocaleString("ko-KR")}건`; title.append(eyebrow, heading, meta); const expand = document.createElement("span"); expand.className = "matrix-expand"; expand.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>'; header.append(title, expand);
@@ -566,7 +586,9 @@ elements.fileList.addEventListener("change", () => { if (elements.fileList.value
 elements.deleteFileButton.addEventListener("click", deleteSelectedFile);
 elements.sheetSelect.addEventListener("change", async () => { state.selectedSheetId = elements.sheetSelect.value; state.currentPage = 1; await loadTablePage(); });
 elements.previousPage.addEventListener("click", async () => { if (state.currentPage > 1) { state.currentPage -= 1; await loadTablePage(); } }); elements.nextPage.addEventListener("click", async () => { const sheet = selectedSheet(); if (sheet && state.currentPage < sheet.page_count) { state.currentPage += 1; await loadTablePage(); } });
-elements.matrixSourceSelect.addEventListener("change", renderMatrix); elements.matrixProductSelect.addEventListener("change", renderMatrix);
+elements.matrixKitStart.addEventListener("input", renderMatrix); elements.matrixKitEnd.addEventListener("input", renderMatrix); elements.matrixKitExtra.addEventListener("input", renderMatrix);
+elements.matrixKitClear.addEventListener("click", () => { elements.matrixKitStart.value = ""; elements.matrixKitEnd.value = ""; elements.matrixKitExtra.value = ""; renderMatrix(); });
+elements.matrixProductSelect.addEventListener("change", renderMatrix);
 elements.matrixProductSearch.addEventListener("input", renderMatrix); elements.matrixParameterSearch.addEventListener("input", renderMatrix);
 elements.matrixModalClose.addEventListener("click", closeMatrixModal); document.querySelectorAll("[data-matrix-close]").forEach((button) => button.addEventListener("click", closeMatrixModal));
 document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !elements.matrixModal.hidden) closeMatrixModal(); });

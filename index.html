@@ -6,7 +6,7 @@
   <meta name="referrer" content="no-referrer">
   <meta name="description" content="비공개 CKM Excel 분석 대시보드">
   <link rel="icon" type="image/svg+xml" href="assets/book-bookmark.svg">
-  <link rel="stylesheet" href="css/app.css?v=20261012-8">
+  <link rel="stylesheet" href="css/app.css?v=20261012-9">
   <title>bookmark</title>
 </head>
 <body>
@@ -182,11 +182,18 @@
             </header>
 
             <section class="panel matrix-toolbar" aria-label="데이터 매트릭스 필터">
-              <label class="matrix-control matrix-source-control">
-                <span>분석 파일</span>
-                <select id="matrix-source-select"><option value="all">전체 파일</option></select>
-                <small id="matrix-file-pattern">표시 형식: [A열 값]_[날짜]</small>
-              </label>
+              <div class="matrix-control matrix-kit-control">
+                <span>Kit 선택 · A열 제목의 CKM 번호 기준</span>
+                <div class="matrix-kit-picker">
+                  <label><span class="visually-hidden">시작 CKM 번호</span><input id="matrix-kit-start" type="number" min="1" inputmode="numeric" placeholder="시작 CKM"></label>
+                  <i>~</i>
+                  <label><span class="visually-hidden">끝 CKM 번호</span><input id="matrix-kit-end" type="number" min="1" inputmode="numeric" placeholder="끝 CKM"></label>
+                  <b>+</b>
+                  <label class="matrix-kit-extra-label"><span class="visually-hidden">추가 CKM 번호</span><input id="matrix-kit-extra" type="text" inputmode="numeric" placeholder="추가 Kit: 300, 305"></label>
+                  <button id="matrix-kit-clear" class="matrix-kit-clear" type="button">전체 Kit</button>
+                </div>
+                <div class="matrix-kit-meta"><small id="matrix-kit-selection-summary">전체 CKM 선택</small><small id="matrix-kit-available">A열에서 CKM 번호를 확인합니다.</small></div>
+              </div>
               <label class="matrix-control">
                 <span>F열 제품 / 카테고리</span>
                 <select id="matrix-product-select"><option value="">전체 제품</option></select>
@@ -242,6 +249,6 @@
     </section>
   </div>
   <script src="js/gaze-background.js?v=20261001-2" defer></script>
-  <script src="js/app.js?v=20261012-8" defer></script>
+  <script src="js/app.js?v=20261012-9" defer></script>
 </body>
 </html>
