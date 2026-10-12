@@ -15,7 +15,7 @@ const state = {
 
 const ids = [
   "login-screen", "app-screen", "login-form", "token-input", "token-panel", "token-submit", "login-status", "lock-button",
-  "access-control", "logout-button", "refresh-button", "mobile-menu-button", "view-eyebrow", "view-title",
+  "access-control", "logout-button", "refresh-button", "mobile-menu-button",
   "run-progress", "progress-status", "progress-file", "progress-elapsed", "progress-message", "progress-percent", "progress-bar",
   "progress-steps", "progress-actions", "progress-retry", "file-input", "file-dropzone", "file-label", "upload-button",
   "upload-message", "file-list", "file-count", "delete-file-button", "empty-view", "processing-view", "error-view", "analysis-error-message",
@@ -26,8 +26,6 @@ const ids = [
   "history-total", "history-success", "history-failure", "history-average", "history-body", "updates-timeline",
 ];
 const elements = Object.fromEntries(ids.map((id) => [id.replace(/-([a-z])/g, (_, c) => c.toUpperCase()), document.getElementById(id)]));
-const viewMeta = { dashboard: ["OVERVIEW", "Dashboard"], excel: ["DATA", "Excel 보관함"], history: ["DATA", "분석 History"], updates: ["SYSTEM", "업데이트 사항"] };
-
 function showRootScreen(name) {
   elements.loginScreen.hidden = name !== "login";
   elements.appScreen.hidden = name !== "app";
@@ -61,10 +59,8 @@ async function authenticateCandidate(token) {
 }
 
 function showView(name) {
-  const meta = viewMeta[name] || viewMeta.dashboard;
   document.querySelectorAll(".app-view").forEach((view) => { view.hidden = view.id !== `${name}-view`; });
   document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === name));
-  elements.viewEyebrow.textContent = meta[0]; elements.viewTitle.textContent = meta[1];
   elements.appScreen.classList.remove("menu-open");
 }
 
