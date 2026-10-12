@@ -109,12 +109,12 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .demo-note { padding: 7px 10px; }
 .demo-tag { padding: 4px 8px; }
 .scope-note { padding: 7px 11px; }
-.metric-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 18px; margin-bottom: 20px; }
+.metric-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; margin-bottom: 16px; }
 .metric-card, .panel, .history-summary article { border: 1px solid #e6eaf0; border-radius: 18px; background: white; box-shadow: 0 5px 18px rgba(26,38,65,.035); }
-.metric-card { min-height: 132px; display: grid; align-content: center; padding: 22px; position: relative; }
-.metric-card span { color: #667085; font-size: .82rem; font-weight: 700; }
-.metric-card strong { margin-top: 9px; font-size: 1.9rem; letter-spacing: -.04em; }
-.metric-card small { position: absolute; top: 16px; right: 16px; padding: 3px 6px; border-radius: 6px; background: #f2f4f7; color: #98a2b3; font-size: .62rem; font-weight: 800; }
+.metric-card { min-height: 94px; display: grid; align-content: center; padding: 16px 18px; position: relative; }
+.metric-card span { color: #667085; font-size: .74rem; font-weight: 700; }
+.metric-card strong { margin-top: 6px; font-size: 1.45rem; letter-spacing: -.035em; }
+.metric-card small { position: absolute; top: 13px; right: 13px; padding: 3px 6px; border-radius: 6px; background: #f2f4f7; color: #98a2b3; font-size: .58rem; font-weight: 800; }
 .dashboard-grid { display: grid; grid-template-columns: minmax(0,1.65fr) minmax(280px,.8fr); gap: 20px; }
 .full-panel { grid-column: 1 / -1; }
 .panel { min-width: 0; overflow: hidden; }
@@ -197,34 +197,24 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .progress-actions { margin-top: 14px; }
 
 /* Excel workspace */
-.excel-toolbar { display:grid; grid-template-columns:minmax(440px,.9fr) minmax(0,1.6fr); gap:0; margin-bottom:16px; overflow:visible; }
-.upload-inline,.files-inline { min-width:0; padding:16px 18px; }
+.excel-toolbar { display:grid; grid-template-columns:minmax(360px,.8fr) minmax(300px,1.2fr); gap:0; margin-bottom:16px; overflow:visible; }
+.upload-inline,.files-inline { min-width:0; padding:13px 16px; }
 .files-inline { border-left:1px solid #eef0f4; }
-.toolbar-heading { min-height:24px; display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.toolbar-heading { min-height:20px; display:flex; align-items:center; gap:7px; margin-bottom:7px; }
 .toolbar-heading>span { color:#98a2b3; font-size:.62rem; font-weight:850; letter-spacing:.12em; }
 .toolbar-heading>strong { color:#344054; font-size:.82rem; }
+.toolbar-heading>small { margin-left:auto; color:#98a2b3; font-size:.62rem; }
 .toolbar-heading .count-badge { margin-left:auto; }
-.upload-controls { display:grid; grid-template-columns:minmax(220px,1fr) auto; gap:10px; }
-.dropzone { min-height:54px; display:flex; align-items:center; gap:10px; padding:9px 12px; border:1px dashed #bdc9da; border-radius:11px; background:#f8faff; cursor:pointer; }
-.dropzone:hover,.dropzone.dragging { border-color:#356ae6; background:#f0f5ff; }
-.dropzone b { display:grid; width:30px; height:30px; flex:0 0 30px; place-items:center; border-radius:8px; background:#eaf2ff; color:#356ae6; font-size:1.2rem; }
-.dropzone>span { min-width:0; }
-.dropzone strong,.dropzone small { display:block; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.dropzone strong { font-size:.78rem; }.dropzone small { margin-top:2px; color:#98a2b3; font-size:.64rem; }
-.upload-controls>.primary-button { width:auto; min-height:54px; white-space:nowrap; }
-.upload-message { min-height:16px; margin:7px 0 0; color:#667085; font-size:.68rem; line-height:1.35; }
+.upload-controls { display:grid; grid-template-columns:minmax(150px,1fr) auto; gap:8px; }
+.file-picker-button { min-width:0; min-height:42px; display:flex; align-items:center; gap:8px; padding:7px 11px; border:1px solid #d7dde7; border-radius:9px; background:white; cursor:pointer; }
+.file-picker-button:hover,.file-picker-button.dragging { border-color:#356ae6; background:#f5f8ff; }
+.file-picker-button b { color:#356ae6; font-size:1rem; }
+.file-picker-button strong { min-width:0; overflow:hidden; color:#475467; font-size:.76rem; text-overflow:ellipsis; white-space:nowrap; }
+.upload-controls>.primary-button { width:auto; min-height:42px; white-space:nowrap; }
+.upload-message { min-height:0; margin:6px 0 0; color:#667085; font-size:.66rem; line-height:1.3; }
 .upload-message.success { color:#18845a; }.upload-message.error { color:#c93850; }
 .count-badge { min-width:28px; padding:4px 8px; border-radius:999px; background:#f2f4f7; color:#667085; font-size:.7rem; text-align:center; }
-.file-list { display:flex; gap:8px; min-height:54px; overflow-x:auto; padding:0 0 3px; }
-.file-list .empty-copy { width:100%; padding:17px 12px; }
-.file-item { min-width:250px; max-width:330px; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:5px 10px; padding:9px 11px; border:1px solid #edf0f4; border-radius:10px; background:#fbfcfe; color:inherit; text-align:left; }
-.file-item:hover { background:#f6f8fb; }.file-item.selected { border-color:#bed0f6; background:#eff5ff; }
-.file-item>strong { min-width:0; overflow:hidden; font-size:.8rem; text-overflow:ellipsis; white-space:nowrap; }
-.file-item>.status { align-self:start; padding:3px 6px; border-radius:6px; background:#e9f8f1; color:#18845a; font-size:.62rem; font-weight:800; }
-.file-item>.status.processing { background:#fff5df; color:#a66508; }.file-item>.status.error { background:#fff0f2; color:#c93850; }.file-item>.status.duplicate { background:#f0f2f5; color:#667085; }
-.file-item>small { grid-column:1 / -1; color:#98a2b3; font-size:.68rem; }
-.file-name { overflow:hidden; font-size:.8rem; font-weight:750; text-overflow:ellipsis; white-space:nowrap; }
-.file-detail { grid-column:1; color:#98a2b3; font-size:.68rem; }
+.file-select { width:100%; min-height:42px; padding:8px 36px 8px 11px; border:1px solid #d7dde7; border-radius:9px; background:white; color:#344054; font-size:.76rem; text-overflow:ellipsis; }
 .workbook-panel { min-height:calc(100vh - 265px); }
 .empty-state { height:100%; min-height:600px; display:grid; place-items:center; align-content:center; padding:30px; text-align:center; }
 .empty-state h3 { margin:18px 0 6px; }.empty-state p { max-width:440px; margin:0; color:#98a2b3; }

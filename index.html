@@ -6,7 +6,7 @@
   <meta name="referrer" content="no-referrer">
   <meta name="description" content="비공개 CKM Excel 분석 대시보드">
   <link rel="icon" type="image/svg+xml" href="assets/book-bookmark.svg">
-  <link rel="stylesheet" href="css/app.css?v=20261012-1">
+  <link rel="stylesheet" href="css/app.css?v=20261012-2">
   <title>bookmark</title>
 </head>
 <body>
@@ -93,10 +93,6 @@
 
         <div class="view-container">
           <section id="dashboard-view" class="app-view">
-            <div class="welcome-row">
-              <div><h2>CKM 규격 분석 현황</h2><p>중복을 제외한 측정값과 규격 이탈을 확인하세요.</p></div>
-              <span id="dashboard-scope" class="scope-note">고유 데이터 0개</span>
-            </div>
             <div class="metric-grid">
               <article class="metric-card"><span>고유 데이터</span><strong id="dashboard-dataset-count">0</strong><small>A열 기준</small></article>
               <article class="metric-card"><span>측정값</span><strong id="dashboard-measurement-count">0</strong><small>Actual</small></article>
@@ -138,17 +134,17 @@
           <section id="excel-view" class="app-view" hidden>
             <div class="excel-toolbar panel">
               <div class="upload-inline">
-                <div class="toolbar-heading"><span>EXCEL</span><strong>파일 추가</strong></div>
+                <div class="toolbar-heading"><span>EXCEL</span><strong>파일 추가</strong><small>.xlsx · 최대 20MB</small></div>
                 <div class="upload-controls">
                   <input id="file-input" class="visually-hidden" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
-                  <label id="file-dropzone" class="dropzone" for="file-input"><b>+</b><span><strong id="file-label">파일 선택</strong><small>.xlsx · 최대 20MB</small></span></label>
-                  <button id="upload-button" class="primary-button full" type="button" disabled>비공개 저장소에 업로드</button>
+                  <label id="file-dropzone" class="file-picker-button" for="file-input"><b>+</b><strong id="file-label">파일 선택</strong></label>
+                  <button id="upload-button" class="primary-button" type="button" disabled>업로드</button>
                 </div>
                 <p id="upload-message" class="upload-message" aria-live="polite"></p>
               </div>
               <div class="files-inline">
-                <div class="toolbar-heading"><span>FILES</span><strong>저장된 Excel</strong><b id="file-count" class="count-badge">0</b></div>
-                  <div id="file-list" class="file-list"><p class="empty-copy">목록을 불러오는 중입니다.</p></div>
+                <label class="toolbar-heading" for="file-list"><span>FILES</span><strong>저장된 Excel</strong><b id="file-count" class="count-badge">0</b></label>
+                <select id="file-list" class="file-select" aria-label="저장된 Excel 선택"><option value="">목록을 불러오는 중입니다.</option></select>
               </div>
             </div>
             <section class="panel workbook-panel">
@@ -186,6 +182,6 @@
     </section>
   </main>
   <script src="js/gaze-background.js?v=20261001-2" defer></script>
-  <script src="js/app.js?v=20261012-1" defer></script>
+  <script src="js/app.js?v=20261012-2" defer></script>
 </body>
 </html>

@@ -21,7 +21,7 @@ const ids = [
   "upload-message", "file-list", "file-count", "empty-view", "processing-view", "error-view", "analysis-error-message",
   "table-view", "selected-file-name", "selected-file-meta", "sheet-select", "sheet-summary", "page-summary", "table-loading",
   "table-container", "previous-page", "next-page", "current-page", "dashboard-history", "dashboard-update",
-  "dashboard-scope", "dashboard-dataset-count", "dashboard-measurement-count", "dashboard-out-rate", "dashboard-missing-spec",
+  "dashboard-dataset-count", "dashboard-measurement-count", "dashboard-out-rate", "dashboard-missing-spec",
   "dashboard-spec-position", "dashboard-status-donut", "dashboard-status-legend", "dashboard-parameter-bars", "dashboard-chambers", "dashboard-heatmap",
   "history-total", "history-success", "history-failure", "history-average", "history-body", "updates-timeline",
 ];
@@ -180,8 +180,6 @@ function renderDashboard() {
   elements.dashboardMeasurementCount.textContent = validActual.toLocaleString("ko-KR");
   elements.dashboardOutRate.textContent = evaluated ? `${((outOfSpec / evaluated) * 100).toFixed(1)}%` : "-";
   elements.dashboardMissingSpec.textContent = missingSpec.toLocaleString("ko-KR");
-  elements.dashboardScope.textContent = `고유 데이터 ${files.length.toLocaleString("ko-KR")}개${state.files.some((file) => file.is_duplicate) ? " · 중복 제외" : ""}`;
-
   renderSpecPosition(files);
   renderStatusDonut({ inSpec, outOfSpec, missingSpec, evaluated, validActual });
   renderParameterBars(files);
@@ -272,10 +270,9 @@ function renderUpdates() {
 }
 function renderFileList() {
   elements.fileCount.textContent = String(state.files.length); elements.fileList.replaceChildren();
-  if (!state.files.length) { const empty = document.createElement("p"); empty.className = "empty-copy"; empty.textContent = "저장된 Excel이 없습니다."; elements.fileList.append(empty); return; }
-  state.files.forEach((file) => { const button = document.createElement("button"); button.type = "button"; button.className = `file-item${file.id === state.selectedFileId ? " selected" : ""}`;
-    const name = document.createElement("strong"); name.textContent = file.original_name; const status = document.createElement("span"); status.className = `status ${file.is_duplicate ? "duplicate" : file.status}`; status.textContent = file.is_duplicate ? "중복" : statusLabel(file.status);
-    const detail = document.createElement("small"); detail.textContent = `${formatBytes(file.size)} · ${formatDate(file.uploaded_at)}`; button.append(name, status, detail); button.addEventListener("click", () => selectFile(file.id)); elements.fileList.append(button); });
+  const placeholder = document.createElement("option"); placeholder.value = ""; placeholder.textContent = state.files.length ? "Excel 파일을 선택하세요" : "저장된 Excel이 없습니다."; elements.fileList.append(placeholder);
+  state.files.forEach((file) => { const option = document.createElement("option"); option.value = file.id; const status = file.is_duplicate ? "중복" : statusLabel(file.status); option.textContent = `${file.original_name} · ${status} · ${formatBytes(file.size)} · ${formatDate(file.uploaded_at)}`; elements.fileList.append(option); });
+  elements.fileList.value = state.files.some((file) => file.id === state.selectedFileId) ? state.selectedFileId : "";
 }
 
 async function selectFile(fileId) {
@@ -406,6 +403,7 @@ elements.progressRetry.addEventListener("click", async () => { elements.progress
 elements.fileInput.addEventListener("change", () => chooseUpload(elements.fileInput.files[0])); elements.uploadButton.addEventListener("click", uploadSelectedFile);
 elements.fileDropzone.addEventListener("dragover", (event) => { event.preventDefault(); elements.fileDropzone.classList.add("dragging"); }); elements.fileDropzone.addEventListener("dragleave", () => elements.fileDropzone.classList.remove("dragging"));
 elements.fileDropzone.addEventListener("drop", (event) => { event.preventDefault(); elements.fileDropzone.classList.remove("dragging"); chooseUpload(event.dataTransfer.files[0]); });
+elements.fileList.addEventListener("change", () => { if (elements.fileList.value) selectFile(elements.fileList.value); });
 elements.sheetSelect.addEventListener("change", async () => { state.selectedSheetId = elements.sheetSelect.value; state.currentPage = 1; await loadTablePage(); });
 elements.previousPage.addEventListener("click", async () => { if (state.currentPage > 1) { state.currentPage -= 1; await loadTablePage(); } }); elements.nextPage.addEventListener("click", async () => { const sheet = selectedSheet(); if (sheet && state.currentPage < sheet.page_count) { state.currentPage += 1; await loadTablePage(); } });
 document.addEventListener("visibilitychange", () => { if (!document.hidden && state.activeRun) pollActiveRun(); });
