@@ -6,7 +6,7 @@
   <meta name="referrer" content="no-referrer">
   <meta name="description" content="비공개 CKM Excel 분석 대시보드">
   <link rel="icon" type="image/svg+xml" href="assets/book-bookmark.svg">
-  <link rel="stylesheet" href="css/app.css?v=20261012-9">
+  <link rel="stylesheet" href="css/app.css?v=20261012-10">
   <title>bookmark</title>
 </head>
 <body>
@@ -78,9 +78,6 @@
       <div class="app-content">
         <header class="app-topbar">
           <button id="mobile-menu-button" class="icon-button mobile-only" type="button" aria-label="메뉴 열기">☰</button>
-          <button id="refresh-button" class="refresh-icon-button" type="button" aria-label="새로고침" title="새로고침">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66M20 4v7h-7"/></svg>
-          </button>
         </header>
 
         <section id="run-progress" class="run-progress" aria-live="polite" hidden>
@@ -171,14 +168,7 @@
 
           <section id="matrix-view" class="app-view" hidden>
             <header class="matrix-heading">
-              <div>
-                <span>DATA MATRIX</span>
-                <h2>A열 Kit ID × N열 Actual</h2>
-                <p>F열 제품으로 범위를 좁히고, J열 Parameter마다 독립된 그래프를 확인합니다.</p>
-              </div>
-              <div class="matrix-axis-map" aria-label="열 매핑">
-                <span><b>A열</b> Kit ID</span><i>→</i><span><b>N열</b> Actual</span>
-              </div>
+              <h2>A열 Kit ID × N열 Actual</h2>
             </header>
 
             <section class="panel matrix-toolbar" aria-label="데이터 매트릭스 필터">
@@ -249,6 +239,6 @@
     </section>
   </div>
   <script src="js/gaze-background.js?v=20261001-2" defer></script>
-  <script src="js/app.js?v=20261012-10" defer></script>
+  <script src="js/app.js?v=20261012-11" defer></script>
 </body>
 </html>
