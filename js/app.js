@@ -20,7 +20,7 @@ const ids = [
   "progress-steps", "progress-actions", "progress-retry", "file-input", "file-dropzone", "file-label", "upload-button",
   "upload-message", "file-list", "file-count", "empty-view", "processing-view", "error-view", "analysis-error-message",
   "table-view", "selected-file-name", "selected-file-meta", "sheet-select", "sheet-summary", "page-summary", "table-loading",
-  "table-container", "previous-page", "next-page", "current-page", "connection-label", "dashboard-history", "dashboard-update",
+  "table-container", "previous-page", "next-page", "current-page", "dashboard-history", "dashboard-update",
   "dashboard-scope", "dashboard-dataset-count", "dashboard-measurement-count", "dashboard-out-rate", "dashboard-missing-spec",
   "dashboard-spec-position", "dashboard-status-donut", "dashboard-status-legend", "dashboard-parameter-bars", "dashboard-chambers", "dashboard-heatmap",
   "history-total", "history-success", "history-failure", "history-average", "history-body", "updates-timeline",
@@ -48,8 +48,8 @@ async function authenticateCandidate(token) {
   const requestId = ++state.authenticationRequestId; const controller = new AbortController(); state.authenticationController = controller; state.authenticationPending = true;
   elements.tokenPanel.setAttribute("aria-busy", "true"); elements.tokenSubmit.disabled = true; elements.loginStatus.textContent = "접근 권한을 확인하고 있습니다.";
   try {
-    const repository = await verifyAccess(token, controller.signal); if (requestId !== state.authenticationRequestId) return;
-    state.token = token; elements.tokenInput.value = ""; elements.connectionLabel.textContent = repository.full_name; elements.loginStatus.textContent = "인증되었습니다.";
+    await verifyAccess(token, controller.signal); if (requestId !== state.authenticationRequestId) return;
+    state.token = token; elements.tokenInput.value = ""; elements.loginStatus.textContent = "인증되었습니다.";
     showRootScreen("app"); showView("dashboard"); showContentView("empty"); await loadAllData({ preserveSelection: false });
   } catch (error) {
     if (error.name === "AbortError" || requestId !== state.authenticationRequestId) return;
@@ -266,9 +266,9 @@ function renderHistory() {
 }
 function renderUpdates() {
   elements.updatesTimeline.replaceChildren(); const updates = state.updateHistory.length ? state.updateHistory : [{ date: "2026-09-30", title: "대시보드 개편", summary: "업데이트 기록 파일을 연결하면 이곳에 실제 변경 내역이 표시됩니다.", changes: ["분석 진행률", "자동 표 열기", "History 화면"] }];
-  updates.forEach((update) => { const card = document.createElement("article"); card.className = "update-card panel"; const date = document.createElement("time"); date.textContent = `${formatUpdateDate(update.released_at || update.date)} - ${update.title || "업데이트 사항"}`;
-    const title = document.createElement("h3"); title.textContent = "업데이트 사항"; const summary = document.createElement("p"); summary.textContent = update.summary || "";
-    const list = document.createElement("ul"); (update.changes || []).forEach((change) => { const item = document.createElement("li"); item.textContent = change; list.append(item); }); card.append(date, title, summary, list); elements.updatesTimeline.append(card); });
+  updates.forEach((update) => { const card = document.createElement("article"); card.className = "update-card"; const date = document.createElement("time"); date.textContent = formatUpdateDate(update.released_at || update.date);
+    const content = document.createElement("div"); const title = document.createElement("h3"); title.textContent = update.title || "변경 내역"; const summary = document.createElement("p"); summary.textContent = update.summary || "";
+    const list = document.createElement("ul"); (update.changes || []).forEach((change) => { const item = document.createElement("li"); item.textContent = change; list.append(item); }); content.append(title, summary, list); card.append(date, content); elements.updatesTimeline.append(card); });
 }
 function renderFileList() {
   elements.fileCount.textContent = String(state.files.length); elements.fileList.replaceChildren();

@@ -6,7 +6,7 @@
   <meta name="referrer" content="no-referrer">
   <meta name="description" content="비공개 CKM Excel 분석 대시보드">
   <link rel="icon" type="image/svg+xml" href="assets/book-bookmark.svg">
-  <link rel="stylesheet" href="css/app.css?v=20261001-2">
+  <link rel="stylesheet" href="css/app.css?v=20261012-1">
   <title>bookmark</title>
 </head>
 <body>
@@ -67,7 +67,6 @@
         </nav>
 
         <div class="sidebar-footer">
-          <div class="repo-state"><span></span><div><strong>Private 연결됨</strong><small id="connection-label">dnjs3/dlslrhdwn</small></div></div>
           <button id="logout-button" class="logout-button" type="button">로그아웃</button>
         </div>
       </aside>
@@ -137,21 +136,22 @@
           </section>
 
           <section id="excel-view" class="app-view" hidden>
-            <div class="excel-grid">
-              <aside class="file-column">
-                <article class="panel upload-card">
-                  <div class="panel-header"><div><span>UPLOAD</span><h3>Excel 올리기</h3></div></div>
+            <div class="excel-toolbar panel">
+              <div class="upload-inline">
+                <div class="toolbar-heading"><span>EXCEL</span><strong>파일 추가</strong></div>
+                <div class="upload-controls">
                   <input id="file-input" class="visually-hidden" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
-                  <label id="file-dropzone" class="dropzone" for="file-input"><b>+</b><strong id="file-label">파일 선택</strong><span>.xlsx · 최대 20MB</span></label>
+                  <label id="file-dropzone" class="dropzone" for="file-input"><b>+</b><span><strong id="file-label">파일 선택</strong><small>.xlsx · 최대 20MB</small></span></label>
                   <button id="upload-button" class="primary-button full" type="button" disabled>비공개 저장소에 업로드</button>
-                  <p id="upload-message" class="upload-message" aria-live="polite"></p>
-                </article>
-                <article class="panel files-card">
-                  <div class="panel-header"><div><span>FILES</span><h3>저장된 Excel</h3></div><b id="file-count" class="count-badge">0</b></div>
+                </div>
+                <p id="upload-message" class="upload-message" aria-live="polite"></p>
+              </div>
+              <div class="files-inline">
+                <div class="toolbar-heading"><span>FILES</span><strong>저장된 Excel</strong><b id="file-count" class="count-badge">0</b></div>
                   <div id="file-list" class="file-list"><p class="empty-copy">목록을 불러오는 중입니다.</p></div>
-                </article>
-              </aside>
-              <section class="panel workbook-panel">
+              </div>
+            </div>
+            <section class="panel workbook-panel">
                 <div id="empty-view" class="empty-state"><div class="sheet-symbol"></div><h3>Excel을 선택하세요</h3><p>파일을 누르면 시트 내용을 표로 확인할 수 있습니다.</p></div>
                 <div id="processing-view" class="empty-state" hidden><div class="spinner"></div><h3>Excel을 분석하고 있습니다</h3><p>완료되면 이 화면에서 표가 자동으로 열립니다.</p></div>
                 <div id="error-view" class="empty-state" hidden><div class="failure-mark small">!</div><h3>분석하지 못했습니다</h3><p id="analysis-error-message"></p></div>
@@ -162,8 +162,7 @@
                   <div id="table-container" class="table-container" tabindex="0"></div>
                   <nav class="pagination"><button id="previous-page" class="outline-button" type="button">이전</button><span id="current-page">1 / 1</span><button id="next-page" class="outline-button" type="button">다음</button></nav>
                 </div>
-              </section>
-            </div>
+            </section>
           </section>
 
           <section id="history-view" class="app-view" hidden>
@@ -180,7 +179,6 @@
           </section>
 
           <section id="updates-view" class="app-view" hidden>
-            <div class="welcome-row"><div><h2>업데이트 사항</h2><p>화면과 분석 기능의 변경 내역입니다.</p></div></div>
             <div id="updates-timeline" class="updates-timeline"></div>
           </section>
         </div>
@@ -188,6 +186,6 @@
     </section>
   </main>
   <script src="js/gaze-background.js?v=20261001-2" defer></script>
-  <script src="js/app.js?v=20261001-2" defer></script>
+  <script src="js/app.js?v=20261012-1" defer></script>
 </body>
 </html>
