@@ -18,7 +18,7 @@ const state = {
 
 const ids = [
   "login-screen", "app-screen", "login-form", "token-input", "token-panel", "token-submit", "login-status", "lock-button",
-  "access-control", "logout-button", "mobile-menu-button",
+  "access-control", "logout-button", "refresh-button", "mobile-menu-button",
   "run-progress", "progress-status", "progress-file", "progress-elapsed", "progress-message", "progress-percent", "progress-bar",
   "progress-steps", "progress-actions", "progress-retry", "file-input", "file-dropzone", "file-label", "upload-button",
   "upload-message", "file-list", "file-count", "delete-file-button", "empty-view", "processing-view", "error-view", "analysis-error-message",
@@ -155,6 +155,7 @@ function mergeFileLists(rawFiles, processedIndex) {
 }
 
 async function loadAllData({ preserveSelection = true } = {}) {
+  elements.refreshButton.disabled = true;
   try {
     const [rawFiles, processed, history, updates] = await Promise.all([
       getRawFiles(), getOptionalJson(CONFIG.indexPath, { files: [] }), getOptionalJson(CONFIG.analysisHistoryPath, []), getOptionalJson(CONFIG.updateHistoryPath, []),
@@ -169,7 +170,7 @@ async function loadAllData({ preserveSelection = true } = {}) {
     if (preserveSelection && state.selectedFileId) { const selected = state.files.find((file) => file.id === state.selectedFileId); if (selected) await selectFile(selected.id); }
   } catch (error) {
     if (state.token) { elements.uploadMessage.className = "upload-message error"; elements.uploadMessage.textContent = error.message; }
-  }
+  } finally { elements.refreshButton.disabled = false; }
 }
 
 function statusLabel(status) { return status === "ready" || status === "success" ? "완료" : status === "error" || status === "failure" ? "실패" : "분석 중"; }
@@ -609,6 +610,7 @@ function closeMatrixModal() {
   if (!elements?.matrixModal || elements.matrixModal.hidden) return; elements.matrixModal.hidden = true; document.body.classList.remove("matrix-modal-open"); state.matrixModalParameter = null; const focus = state.matrixLastFocus; state.matrixLastFocus = null; if (focus?.isConnected) focus.focus();
 }
 
+async function refreshEverything() { await loadAllData(); if (!document.getElementById("matrix-view").hidden) await ensureMatrixData(true); if (state.activeRun) pollActiveRun(); }
 function scheduleMatrixSelectionLoad() {
   clearTimeout(state.matrixSelectionTimer);
   state.matrixSelectionTimer = setTimeout(async () => {
@@ -627,6 +629,7 @@ elements.lockButton.addEventListener("click", () => setAccessOpen(!state.accessO
 elements.tokenInput.addEventListener("input", () => { elements.loginStatus.textContent = ""; elements.tokenSubmit.disabled = !elements.tokenInput.value.trim() || state.authenticationPending; });
 elements.tokenInput.addEventListener("keydown", (event) => { if (event.key === "Escape") setAccessOpen(false); });
 elements.logoutButton.addEventListener("click", () => { resetState(); showRootScreen("login"); });
+elements.refreshButton.addEventListener("click", refreshEverything);
 elements.progressRetry.addEventListener("click", async () => { elements.progressActions.hidden = true; await loadAllData({ preserveSelection: false }); const target = state.files.find((file) => file.status === "ready"); if (target) { showView("excel"); await selectFile(target.id); elements.runProgress.hidden = true; } else elements.progressActions.hidden = false; });
 elements.fileInput.addEventListener("change", () => chooseUpload(elements.fileInput.files[0])); elements.uploadButton.addEventListener("click", uploadSelectedFile);
 elements.fileDropzone.addEventListener("dragover", (event) => { event.preventDefault(); elements.fileDropzone.classList.add("dragging"); }); elements.fileDropzone.addEventListener("dragleave", () => elements.fileDropzone.classList.remove("dragging"));

@@ -239,8 +239,12 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .updates-timeline { display:grid; gap:10px; }.update-card{display:grid;grid-template-columns:88px minmax(0,1fr);gap:16px;padding:16px 18px;border:1px solid #e6eaf0;border-radius:14px;background:white}.update-card time{padding-top:2px;color:#98a2b3;font-size:.68rem}.update-card h3{margin:0 0 5px;font-size:.9rem;letter-spacing:-.015em}.update-card p{margin:0;color:#667085;font-size:.78rem;line-height:1.5}.update-card ul{display:flex;gap:6px 18px;margin:9px 0 0;padding:0;color:#475467;font-size:.72rem;line-height:1.5;list-style:none;flex-wrap:wrap}.update-card li::before{content:"·";margin-right:5px;color:#98a2b3}.type-tag{display:inline-block;padding:4px 7px;border-radius:7px;background:#eaf2ff;color:#285dcc;font-size:.67rem;font-weight:800}
 
 /* A/F/J/N data matrix */
-.matrix-heading { margin-bottom:10px; }
+.matrix-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
 .matrix-heading h2 { margin:0; color:#1d2939; font-size:1.25rem; letter-spacing:-.035em; }
+.refresh-icon-button { width:32px; height:32px; display:grid; flex:0 0 32px; place-items:center; padding:0; border:1px solid #dfe4ec; border-radius:8px; background:#fff; color:#667085; }
+.refresh-icon-button:hover { border-color:#b8c4d6; color:#285dcc; background:#f8faff; }
+.refresh-icon-button:disabled { opacity:.45; cursor:wait; }
+.refresh-icon-button svg { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 .matrix-modal-dialog header span { color:#356ae6; font-size:.62rem; font-weight:850; letter-spacing:.13em; }
 .matrix-toolbar { display:grid; grid-template-columns:repeat(3,minmax(190px,1fr)); gap:14px; padding:15px 17px; }
 .matrix-control { min-width:0; display:grid; align-content:start; gap:6px; }
