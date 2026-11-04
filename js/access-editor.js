@@ -6,20 +6,22 @@ const ui = {
   file: $('#file'), fit: $('#fit'), paddingX: $('#padding-x'), paddingXNumber: $('#padding-x-number'),
   paddingY: $('#padding-y'), paddingYNumber: $('#padding-y-number'), linkMargins: $('#link-margins'),
   crop: $('#crop'), guides: $('#guides'), center: $('#center'), lock: $('#lock'), layers: $('#layers'),
-  text: $('#text'), family: $('#family'), size: $('#size'), sizeOut: $('#size-out'), y: $('#text-y'),
-  yOut: $('#y-out'), color: $('#text-color'), bg: $('#bg'), hint: $('#hint'), status: $('#status')
+  text: $('#text'), family: $('#family'), size: $('#size'), sizeOut: $('#size-out'), weight: $('#weight'), weightOut: $('#weight-out'), y: $('#text-y'),
+  yOut: $('#y-out'), color: $('#text-color'), bg: $('#bg'), hint: $('#hint'), status: $('#status'),
+  penTool: $('#pen-tool'), eyedropperTool: $('#eyedropper-tool'), selectTool: $('#select-tool'), penSize: $('#pen-size'), penSizeOut: $('#pen-size-out'), penColor: $('#pen-color'), clearStrokes: $('#clear-strokes')
 };
 
 const defaults = {
   images: [], selectedId: null, paddingX: 96, paddingY: 96, marginsLinked: false,
-  crop: true, guides: true, text: '', family: 'Arial, sans-serif', size: 52, y: 86,
-  color: '#151515', bg: '#ffffff', align: 'center'
+  crop: true, guides: true, text: '', family: 'Arial, sans-serif', size: 52, weight: 600, y: 86,
+  color: '#151515', bg: '#ffffff', align: 'center', tool: 'select', penSize: 12, penColor: '#151515', strokes: []
 };
 let state = { ...defaults, images: [] };
 let draggingCanvas = false;
 let lastPoint;
 let saveTimer;
 let draggedLayerId = null;
+let activeStroke = null;
 
 const selectedLayer = () => state.images.find(layer => layer.id === state.selectedId) || null;
 const clampMargin = value => Math.max(0, Math.min(360, Number(value) || 0));
@@ -87,7 +89,7 @@ function draw({ includeGuides = true, includeSelection = true, save = true } = {
     if (state.crop) ctx.restore();
   });
   if (state.text.trim()) {
-    ctx.font = `600 ${state.size}px ${state.family}`;
+    ctx.font = `${state.weight} ${state.size}px ${state.family}`;
     ctx.fillStyle = state.color;
     ctx.textAlign = state.align;
     ctx.textBaseline = 'middle';
@@ -97,6 +99,13 @@ function draw({ includeGuides = true, includeSelection = true, save = true } = {
     const startY = 1080 * state.y / 100 - (lines.length - 1) * lineHeight / 2;
     lines.forEach((line, index) => ctx.fillText(line, px, startY + index * lineHeight));
   }
+  state.strokes.forEach(stroke => {
+    if (stroke.points.length < 2) return;
+    ctx.save(); ctx.strokeStyle = stroke.color; ctx.lineWidth = stroke.size; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath();
+    ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+    stroke.points.slice(1).forEach(({ x, y }) => ctx.lineTo(x, y));
+    ctx.stroke(); ctx.restore();
+  });
   if (includeSelection && selectedLayer()?.visible) drawSelection(selectedLayer());
   if (includeGuides && state.guides) drawGuide();
   if (save) scheduleSave();
@@ -117,7 +126,7 @@ function read() {
   if (layer) layer.fit = ui.fit.value;
   Object.assign(state, {
     crop: ui.crop.checked, guides: ui.guides.checked, text: ui.text.value,
-    family: ui.family.value, size: +ui.size.value, y: +ui.y.value,
+    family: ui.family.value, size: +ui.size.value, weight: +ui.weight.value, y: +ui.y.value,
     color: ui.color.value, bg: ui.bg.value
   });
   ui.sizeOut.value = state.size;
@@ -149,7 +158,8 @@ function sync() {
   ui.fit.disabled = !layer;
   ui.crop.checked = state.crop; ui.guides.checked = state.guides;
   ui.text.value = state.text; ui.family.value = state.family; ui.size.value = state.size;
-  ui.y.value = state.y; ui.color.value = state.color; ui.bg.value = state.bg;
+  ui.weight.value = state.weight; ui.weightOut.value = state.weight; ui.y.value = state.y; ui.color.value = state.color; ui.bg.value = state.bg;
+  ui.penSize.value = state.penSize; ui.penSizeOut.value = state.penSize; ui.penColor.value = state.penColor;
   ui.lock.disabled = !layer;
   ui.center.disabled = !layer;
   ui.lock.classList.toggle('on', Boolean(layer?.locked));
@@ -157,6 +167,7 @@ function sync() {
   ui.lock.setAttribute('aria-pressed', String(Boolean(layer?.locked)));
   canvas.classList.toggle('locked', Boolean(layer?.locked));
   document.querySelectorAll('[data-align]').forEach(button => button.classList.toggle('on', button.dataset.align === state.align));
+  [ui.penTool, ui.eyedropperTool, ui.selectTool].forEach(button => button.classList.toggle('on', button.dataset.tool === state.tool));
   syncMargins();
   renderLayers();
   read();
@@ -235,6 +246,17 @@ function moveLayer(id, delta) {
 }
 
 canvas.addEventListener('pointerdown', event => {
+  const canvasPoint = point(event);
+  if (state.tool === 'eyedropper') {
+    draw({ includeGuides: false, includeSelection: false, save: false });
+    const pixel = ctx.getImageData(Math.max(0, Math.min(1079, Math.floor(canvasPoint.x))), Math.max(0, Math.min(1079, Math.floor(canvasPoint.y))), 1, 1).data;
+    state.penColor = `#${[pixel[0], pixel[1], pixel[2]].map(value => value.toString(16).padStart(2, '0')).join('')}`;
+    state.tool = 'pen'; sync(); event.preventDefault(); return;
+  }
+  if (state.tool === 'pen') {
+    activeStroke = { color: state.penColor, size: state.penSize, points: [canvasPoint] };
+    state.strokes.push(activeStroke); canvas.setPointerCapture(event.pointerId); draw(); event.preventDefault(); return;
+  }
   const hit = pickLayerAt(point(event));
   if (hit && hit.id !== state.selectedId) { state.selectedId = hit.id; sync(); }
   const layer = selectedLayer();
@@ -242,11 +264,13 @@ canvas.addEventListener('pointerdown', event => {
   draggingCanvas = true; lastPoint = point(event); canvas.setPointerCapture(event.pointerId);
 });
 canvas.addEventListener('pointermove', event => {
+  if (activeStroke) { activeStroke.points.push(point(event)); draw(); return; }
   const layer = selectedLayer();
   if (!draggingCanvas || !layer) return;
   const next = point(event); layer.dx += next.x - lastPoint.x; layer.dy += next.y - lastPoint.y; lastPoint = next; draw();
 });
-canvas.addEventListener('pointerup', () => { draggingCanvas = false; });
+canvas.addEventListener('pointerup', () => { draggingCanvas = false; activeStroke = null; });
+canvas.addEventListener('pointercancel', () => { draggingCanvas = false; activeStroke = null; });
 canvas.addEventListener('wheel', event => {
   const layer = selectedLayer();
   if (!layer || layer.locked || !layer.visible) return;
@@ -259,7 +283,12 @@ ui.file.addEventListener('change', event => loadFiles(event.target.files));
 drop.addEventListener('dragover', event => { event.preventDefault(); drop.classList.add('over'); });
 drop.addEventListener('dragleave', () => drop.classList.remove('over'));
 drop.addEventListener('drop', event => { event.preventDefault(); drop.classList.remove('over'); loadFiles(event.dataTransfer.files); });
-[ui.fit, ui.crop, ui.guides, ui.text, ui.family, ui.size, ui.y, ui.color, ui.bg].forEach(control => control.addEventListener('input', read));
+[ui.fit, ui.crop, ui.guides, ui.text, ui.family, ui.size, ui.weight, ui.y, ui.color, ui.bg].forEach(control => control.addEventListener('input', read));
+ui.penSize.addEventListener('input', event => { state.penSize = +event.target.value; ui.penSizeOut.value = state.penSize; draw(); });
+ui.penColor.addEventListener('input', event => { state.penColor = event.target.value; draw(); });
+document.querySelectorAll('[data-tool]').forEach(button => button.addEventListener('click', () => { state.tool = button.dataset.tool; sync(); }));
+document.querySelectorAll('[data-pen-color]').forEach(button => button.addEventListener('click', () => { state.penColor = button.dataset.penColor; sync(); }));
+ui.clearStrokes.addEventListener('click', () => { state.strokes = []; draw(); });
 ui.paddingX.addEventListener('input', event => setMargin('x', event.target.value));
 ui.paddingXNumber.addEventListener('input', event => setMargin('x', event.target.value));
 ui.paddingY.addEventListener('input', event => setMargin('y', event.target.value));
@@ -334,7 +363,7 @@ $('#download').onclick = download;
 $('#mobile-download').onclick = download;
 $('#reset').onclick = () => {
   if (!confirm('모두 초기화할까요?')) return;
-  state = { ...defaults, images: [] };
+  state = { ...defaults, images: [], strokes: [] };
   localStorage.removeItem('square-note'); sync();
 };
 
@@ -342,7 +371,7 @@ try {
   const saved = JSON.parse(localStorage.getItem('square-note'));
   if (saved) {
     if (typeof saved.pad === 'number') { saved.paddingX = saved.pad; saved.paddingY = saved.pad; delete saved.pad; }
-    state = { ...state, ...saved, images: [], selectedId: null };
+    state = { ...state, ...saved, weight: saved.weight || 600, penSize: saved.penSize || 12, penColor: saved.penColor || '#151515', tool: saved.tool || 'select', strokes: Array.isArray(saved.strokes) ? saved.strokes : [], images: [], selectedId: null };
   }
 } catch {}
 sync();
